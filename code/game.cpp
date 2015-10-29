@@ -27,12 +27,16 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
 {
     int stopmarker = 666;
 
-    void *EmptySpace = malloc(32);
-    Test_1 *t1 = (Test_1*)EmptySpace;
-    t1->A = 123;
-    t1->B = 456;
-    free(EmptySpace);
+    Test_1 *NewData = (Test_1 *)Allocate(&GameState->Memory, sizeof(Test_1));
+    NewData->A = 0xAB;
+    NewData->B = 0xCD;
 
+    for (int i=0; i < 10; ++i) {
+        Allocate(&GameState->Memory, 1);
+    }
     
+    int blaj=123;
+
+    Deallocate(&GameState->Memory, NewData);
 }
 

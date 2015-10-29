@@ -31,22 +31,16 @@ AllocateGameMemory(gamestate_t *GameState, uint64 Size)
 {
     LOGF("Allocating %d", Size);
 
-    GameState->Memory.Total.Size = Size;
-    GameState->Memory.Total.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-
-    GameState->Memory.NextFree.Data = GameState->Memory.Total.Data;
-    GameState->Memory.NextFree.Size = Size;
+    GameState->Memory.Size = Size;
+    GameState->Memory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 }
 
 static void
 DeallocateGameMemory(gamestate_t *GameState)
 {
-    VirtualFree(GameState->Memory.Total.Data, 0, MEM_RELEASE);
-    GameState->Memory.Total.Size = 0;
-    GameState->Memory.Total.Data = 0;
-
-    GameState->Memory.NextFree.Data = 0;
-    GameState->Memory.NextFree.Size = 0;
+    VirtualFree(GameState->Memory.Data, 0, MEM_RELEASE);
+    GameState->Memory.Size = 0;
+    GameState->Memory.Data = 0;
 }
 
 static HWND

@@ -19,16 +19,10 @@ struct drawbuffer_t
     void *Buffer;
 };
 
-struct memory_t
+struct gamememory_t
 {
     void *Data;
     uint64 Size;
-};
-
-struct gamememory_t
-{
-    memory_t Total;
-    memory_t NextFree;
 };
 
 struct gamestate_t
