@@ -7,13 +7,11 @@
  * Hashmap of free bits in memory?
  */
 
-#pragma pack(push)
 struct memoryprefix_t
 {
     bool Taken;
     uint Size;
 };
-#pragma pack(pop)
 
 static void *
 Mark(char *Address, bool Taken, uint Size)
