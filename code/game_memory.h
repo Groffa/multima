@@ -3,10 +3,6 @@
 #include <assert.h>
 #include "game.h"
 
-/*
- * Hashmap of free bits in memory?
- */
-
 struct memoryprefix_t
 {
     bool Taken;

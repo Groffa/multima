@@ -7,8 +7,6 @@ struct gamestate_t;
 typedef void (*RunFrameFunc)(gameapi_t *, gamestate_t *);
 typedef void (*LogFunc)(const char *Text);
 
-typedef void (*TestFunc)(void *t); 
-
 typedef unsigned int uint;
 typedef unsigned __int64 uint64;
 
