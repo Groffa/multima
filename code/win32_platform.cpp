@@ -64,8 +64,12 @@ static
 gameapi_t LoadGame()
 {
     gameapi_t api = {0};
-
+    
+#if defined(MULTIMA_DEBUG)
+    api.Handle = LoadLibraryA("game_debug.dll");
+#else
     api.Handle = LoadLibraryA("game.dll");
+#endif
     assert(api.Handle != 0);
    
     api.Log = Log;

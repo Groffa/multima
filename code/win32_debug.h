@@ -2,7 +2,7 @@
 
 extern void Log(const char *);
 
-#if defined(MULTIMA_CONSOLE)
+#if defined(MULTIMA_DEBUG)
     #define LOGF(Text, ...) \
         { \
           char localBuff[255] = {0}; \
@@ -22,7 +22,7 @@ static struct
 static void
 Log(const char *Text)
 {
-#if defined(MULTIMA_CONSOLE)
+#if defined(MULTIMA_DEBUG)
     if (!GameConsole.Init) {
         AllocConsole();
         GameConsole.OutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
