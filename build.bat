@@ -16,8 +16,10 @@ del /Q w:\build\*.lib
 del /Q w:\build\*.obj
 del /Q w:\build\*.pdb
 
-cl /DGAME_TITLE=\"%GAME_TITLE%\" /Zi ..\code\game.cpp /LDd
-cl /DGAME_TITLE=\"%GAME_TITLE%\" /Zi /Fe%GAME_TITLE% ..\code\win32_platform.cpp %LIBS%
-cl /DGAME_TITLE=\"%GAME_TITLE%\" /DMULTIMA_CONSOLE /Zi /Fe%GAME_TITLE%_console.exe ..\code\win32_platform.cpp %LIBS%
+cl /DGAME_TITLE=\"%GAME_TITLE%\" /O2 ..\code\game.cpp /LD
+cl /DGAME_TITLE=\"%GAME_TITLE%\" /O2 /Fe%GAME_TITLE% ..\code\win32_platform.cpp %LIBS%
+
+cl /DGAME_TITLE=\"%GAME_TITLE%\" /DMULTIMA_DEBUG /Zi /Fegame_debug.dll ..\code\game.cpp /LDd
+cl /DGAME_TITLE=\"%GAME_TITLE%\" /DMULTIMA_DEBUG /Zi /Fe%GAME_TITLE%_debug.exe ..\code\win32_platform.cpp %LIBS%
 
 popd
