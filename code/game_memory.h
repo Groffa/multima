@@ -3,23 +3,23 @@
 #include <assert.h>
 #include "game.h"
 
-struct memoryprefix_t
-{
-    bool Taken;
-    uint Size;
-};
+#define PersistAlloc(Type)  (Type *)Allocate(&GameState->PersistentMemory, sizeof(Type), MemoryType_##Type)
+#define PersistDealloc(Ptr) Deallocate(&GameState->PersistentMemory, Ptr)
+#define FrameAlloc(Type)  (Type *)Allocate(&GameState->FrameMemory, sizeof(Type), MemoryType_##Type)
+
 
 static void *
-Mark(char *Address, bool Taken, uint Size)
+Mark(char *Address, bool Taken, uint Size, memorytype_e Type)
 {
     memoryprefix_t *Prefix = (memoryprefix_t *)Address;
     Prefix->Taken = Taken;
     Prefix->Size = Size;
-    return (void *)(Address + sizeof(Prefix));
+    Prefix->Type = Type;
+    return (void *)(Address + sizeof(memoryprefix_t));
 }
 
 void *
-Allocate(gamememory_t *GameMemory, uint Size)
+Allocate(gamememory_t *GameMemory, uint Size, memorytype_e Type)
 {
     // TODO: check memory sizes, bounds
     
@@ -48,9 +48,9 @@ Allocate(gamememory_t *GameMemory, uint Size)
             LeftOver = Prefix->Size - Size;
         }
         assert(LeftOver >= 0);
-        NewSpace = Mark(Address, true, Size);
+        NewSpace = Mark(Address, true, Size, Type);
         if (LeftOver > 0) {
-            Mark(Address + Size + sizeof(memoryprefix_t), false, LeftOver);
+            Mark(Address + Size + sizeof(memoryprefix_t), false, LeftOver, MemoryType_NOOP);
         }
     }
     return NewSpace;

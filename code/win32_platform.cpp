@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "game.h"
+//#include "game_debug.h"
 #include "win32_debug.h"
 
 LRESULT CALLBACK GameWindowCallback(HWND, UINT, WPARAM, LPARAM);
@@ -31,16 +32,21 @@ AllocateGameMemory(gamestate_t *GameState, uint64 Size)
 {
     LOGF("Allocating %d", Size);
 
-    GameState->Memory.Size = Size;
-    GameState->Memory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    GameState->PersistentMemory.Size = Size;
+    GameState->PersistentMemory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    GameState->FrameMemory.Size = Size;
+    GameState->FrameMemory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 }
 
 static void
 DeallocateGameMemory(gamestate_t *GameState)
 {
-    VirtualFree(GameState->Memory.Data, 0, MEM_RELEASE);
-    GameState->Memory.Size = 0;
-    GameState->Memory.Data = 0;
+    VirtualFree(GameState->PersistentMemory.Data, 0, MEM_RELEASE);
+    VirtualFree(GameState->FrameMemory.Data, 0, MEM_RELEASE);
+    GameState->PersistentMemory.Size = 0;
+    GameState->PersistentMemory.Data = 0;
+    GameState->FrameMemory.Size = 0;
+    GameState->FrameMemory.Data = 0;
 }
 
 static HWND
@@ -145,7 +151,7 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
     GameState.DrawBuffer.Height = 480;
     InitScreenBuffer(&GameState, hwnd);
 
-    AllocateGameMemory(&GameState, MEGABYTES(1));
+    AllocateGameMemory(&GameState, 128);
 
     float Scale = 2.0f;
     
@@ -172,8 +178,28 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
                     break;
             }
         }
-        
+
+        memset(GameState.FrameMemory.Data, 0, GameState.FrameMemory.Size);
         GameApi.RunFrame(&GameApi, &GameState);
+
+#if defined(MULTIMA_DEBUG)
+        {
+            char *Address = (char *)GameState.FrameMemory.Data;
+            char *LastAddress = (char *)(Address + GameState.FrameMemory.Size);
+            while (Address < LastAddress) {
+                memoryprefix_t *Prefix = (memoryprefix_t *)Address;
+                /*
+                if (Prefix->Taken && Prefix->Type == MemoryType_debugmarker_t) {
+                    
+                } else {
+                    Address = ((char *)Address) + Prefix->Size + sizeof(memoryprefix_t);
+                }
+                */
+                LOGF("Type: %i   Size: %i", Prefix->Type, Prefix->Size);
+                Address = ((char *)Address) + Prefix->Size + sizeof(memoryprefix_t);
+            }
+        }
+#endif
 
         HDC hdc = GetDC(hwnd);
         const int res = StretchDIBits(

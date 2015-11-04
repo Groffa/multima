@@ -17,6 +17,23 @@ struct drawbuffer_t
     void *Buffer;
 };
 
+enum memorytype_e
+{
+    MemoryType_NOOP,
+    MemoryType_int,
+    MemoryType_debugmarker_t,
+    MemoryType_char,
+
+    MemoryType_Count
+};
+
+struct memoryprefix_t
+{
+    bool Taken;
+    uint Size;
+    memorytype_e Type;
+};
+
 struct gamememory_t
 {
     void *Data;
@@ -30,7 +47,8 @@ struct gamestate_t
 
     drawbuffer_t DrawBuffer;
 
-    gamememory_t Memory;
+    gamememory_t PersistentMemory;
+    gamememory_t FrameMemory;
 
     uint64 DeltaTime;
 };
