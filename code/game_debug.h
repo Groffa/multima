@@ -1,6 +1,9 @@
 #ifndef GAME_DEBUG_H
 
 #include <intrin.h>
+#include "game.h"
+
+extern "C" gamememory_t GlobalDebugMemory;
 
 enum debugtype_e
 {
@@ -19,14 +22,15 @@ struct debugmarker_t
 
 struct debugtimer_t
 {
-    debugtimer_t(char *Name, gamestate_t *GameState) 
-        : start(__rdtsc()), name(Name), gs(GameState)
+    debugtimer_t(char *Name) 
+        : start(__rdtsc()), name(Name)
     {}
 
     ~debugtimer_t() {
         uint64 end = __rdtsc();
-        gamestate_t *GameState = gs;
-        debugmarker_t *dbg = FrameAlloc(debugmarker_t);
+        assert(GlobalDebugMemory.Size > 0);
+        assert(GlobalDebugMemory.Data != 0);
+        debugmarker_t *dbg = Alloc(debugmarker_t, &GlobalDebugMemory);
         char *p = name;
         uint i = 0;
         while (*p) {
@@ -42,7 +46,7 @@ struct debugtimer_t
     gamestate_t *gs;
 };
 
-#define TIMER(Name) debugtimer_t timer##__LINE__(Name, GameState);
+#define TIMER(Name) debugtimer_t timer##__LINE__(Name);
 
 #define GAME_DEBUG_H
 #endif

@@ -62,6 +62,11 @@ struct gameapi_t
 
     // Functions
     RunFrameFunc RunFrame;
+
+#if defined(MULTIMA_DEBUG)
+    RunFrameFunc DebugBeginFrame;
+    RunFrameFunc DebugEndFrame;
+#endif
 };
 
 #endif

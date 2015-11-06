@@ -76,6 +76,13 @@ gameapi_t LoadGame()
     api.RunFrame = (RunFrameFunc) GetProcAddress((HMODULE)api.Handle, "RunFrame");
     assert(api.RunFrame != 0);
 
+#if defined(MULTIMA_DEBUG)
+    api.DebugBeginFrame = (RunFrameFunc) GetProcAddress((HMODULE)api.Handle, "DebugBeginFrame");
+    api.DebugEndFrame = (RunFrameFunc) GetProcAddress((HMODULE)api.Handle, "DebugEndFrame");
+    assert(api.DebugBeginFrame != 0);
+    assert(api.DebugEndFrame != 0);
+#endif
+
     return api;
 }
 
@@ -174,26 +181,12 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
             }
         }
 
-        memset(GameState.FrameMemory.Data, 0, GameState.FrameMemory.Size);
-        GameApi.RunFrame(&GameApi, &GameState);
-
 #if defined(MULTIMA_DEBUG)
-        {
-            char *Address = (char *)GameState.FrameMemory.Data;
-            char *LastAddress = (char *)(Address + GameState.FrameMemory.Size);
-            while (Address < LastAddress) {
-                memoryprefix_t *Prefix = (memoryprefix_t *)Address;
-                /*
-                if (Prefix->Taken && Prefix->Type == MemoryType_debugmarker_t) {
-                    
-                } else {
-                    Address = ((char *)Address) + Prefix->Size + sizeof(memoryprefix_t);
-                }
-                */
-                LOGF("Type: %i   Size: %i", Prefix->Type, Prefix->Size);
-                Address = ((char *)Address) + Prefix->Size + sizeof(memoryprefix_t);
-            }
-        }
+        GameApi.DebugBeginFrame(&GameApi, &GameState);
+#endif
+        GameApi.RunFrame(&GameApi, &GameState);
+#if defined(MULTIMA_DEBUG)
+        GameApi.DebugEndFrame(&GameApi, &GameState);
 #endif
 
         HDC hdc = GetDC(hwnd);
