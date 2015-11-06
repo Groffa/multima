@@ -3,10 +3,8 @@
 #include <assert.h>
 #include "game.h"
 
-#define PersistAlloc(Type)  (Type *)Allocate(&GameState->PersistentMemory, sizeof(Type), MemoryType_##Type)
-#define PersistDealloc(Ptr) Deallocate(&GameState->PersistentMemory, Ptr)
-#define FrameAlloc(Type)  (Type *)Allocate(&GameState->FrameMemory, sizeof(Type), MemoryType_##Type)
-
+#define Alloc(Type, Memory)  (Type *)Allocate(Memory, sizeof(Type), MemoryType_##Type)
+#define Dealloc(Ptr, Memory) Deallocate(Memory, Ptr)
 
 static void *
 Mark(char *Address, bool Taken, uint Size, memorytype_e Type)
@@ -77,6 +75,15 @@ Deallocate(gamememory_t *GameMemory, void *Memory)
         NextAddress += Prefix->Size;
         memoryprefix_t *NextPrefix = (memoryprefix_t *)NextAddress;
     }
+}
+
+gamememory_t
+AllocateSubGameMemory(gamememory_t *GameMemory, uint Size)
+{
+    gamememory_t NewGameMemory = {0};
+    NewGameMemory.Data = Allocate(GameMemory, Size, MemoryType_NOOP);
+    NewGameMemory.Size = Size;
+    return NewGameMemory;
 }
 
 #define GAME_MEMORY_H

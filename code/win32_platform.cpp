@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include "game.h"
-//#include "game_debug.h"
 #include "win32_debug.h"
 
 LRESULT CALLBACK GameWindowCallback(HWND, UINT, WPARAM, LPARAM);
@@ -32,21 +31,15 @@ AllocateGameMemory(gamestate_t *GameState, uint64 Size)
 {
     LOGF("Allocating %d", Size);
 
-    GameState->PersistentMemory.Size = Size;
-    GameState->PersistentMemory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    GameState->FrameMemory.Size = Size;
-    GameState->FrameMemory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    GameState->Memory.Size = Size;
+    GameState->Memory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 }
 
 static void
 DeallocateGameMemory(gamestate_t *GameState)
 {
-    VirtualFree(GameState->PersistentMemory.Data, 0, MEM_RELEASE);
-    VirtualFree(GameState->FrameMemory.Data, 0, MEM_RELEASE);
-    GameState->PersistentMemory.Size = 0;
-    GameState->PersistentMemory.Data = 0;
-    GameState->FrameMemory.Size = 0;
-    GameState->FrameMemory.Data = 0;
+    VirtualFree(GameState->Memory.Data, 0, MEM_RELEASE);
+    GameState->Memory.Size = 0;
 }
 
 static HWND
@@ -151,7 +144,9 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
     GameState.DrawBuffer.Height = 480;
     InitScreenBuffer(&GameState, hwnd);
 
-    AllocateGameMemory(&GameState, 128);
+    const uint MemorySize = 1024;
+
+    AllocateGameMemory(&GameState, MemorySize);
 
     float Scale = 2.0f;
     

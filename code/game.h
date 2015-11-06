@@ -47,8 +47,7 @@ struct gamestate_t
 
     drawbuffer_t DrawBuffer;
 
-    gamememory_t PersistentMemory;
-    gamememory_t FrameMemory;
+    gamememory_t Memory;
 
     uint64 DeltaTime;
 };
