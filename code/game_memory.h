@@ -46,6 +46,8 @@ Allocate(gamememory_t *GameMemory, uint Size, memorytype_e Type)
         uint LeftOver = 0;
         if (Prefix->Size > 0) {
             LeftOver = Prefix->Size - Size;
+        } else {
+            LeftOver = GameMemory->Size - Size;
         }
         assert(LeftOver >= 0);
         NewSpace = Mark(Address, true, Size, Type);
