@@ -182,6 +182,7 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
         }
 
 #if defined(MULTIMA_DEBUG)
+        ClearLog();
         GameApi.DebugBeginFrame(&GameApi, &GameState);
 #endif
         GameApi.RunFrame(&GameApi, &GameState);

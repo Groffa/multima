@@ -1,7 +1,5 @@
 #ifndef WIN32_MULTIMA_DEBUG_H
 
-extern void Log(const char *);
-
 #if defined(MULTIMA_DEBUG)
     #define LOGF(Text, ...) \
         { \
@@ -20,17 +18,34 @@ static struct
 } GameConsole = {0};
 
 static void
-Log(const char *Text)
+InitConsole()
 {
-#if defined(MULTIMA_DEBUG)
     if (!GameConsole.Init) {
         AllocConsole();
         GameConsole.OutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
         GameConsole.Init = true;
-    }
+    } 
+}
 
+void
+Log(const char *Text)
+{
+#if defined(MULTIMA_DEBUG)
     DWORD Written;
+    InitConsole();
     WriteConsole(GameConsole.OutHandle, Text, strlen(Text), &Written, 0);
+#endif
+}
+
+void
+ClearLog()
+{
+#if defined(MULTIMA_DEBUG)
+    DWORD Written;
+    COORD coord = {0, 0};
+    InitConsole();
+    FillConsoleOutputCharacter(GameConsole.OutHandle, ' ', 80*25, coord, &Written);
+    SetConsoleCursorPosition(GameConsole.OutHandle, coord);
 #endif
 }
 
