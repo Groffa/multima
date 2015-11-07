@@ -48,5 +48,21 @@ struct debugtimer_t
 
 #define TIMER(Name) debugtimer_t timer##__LINE__(Name);
 
+void
+DebugPrint(debugmarker_t *DebugMarker, LogFunc Log)
+{
+    char Buffer[128] = {0};
+    switch (DebugMarker->Type) {
+        case DebugType_Timer:
+            _snprintf(Buffer, sizeof(Buffer), "%s=%I64d\n", DebugMarker->Name, DebugMarker->UInt64);
+            break;
+
+        default:
+            assert(!"Unknown debug marker type");
+    }
+
+    (*Log)(Buffer);
+}
+
 #define GAME_DEBUG_H
 #endif

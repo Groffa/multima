@@ -65,9 +65,7 @@ DebugEndFrame(gameapi_t *Api, gamestate_t *GameState)
         memoryprefix_t *Prefix = (memoryprefix_t *)Address;
         if (Prefix->Taken) {
             debugmarker_t *dbg = (debugmarker_t *)(Address + sizeof(memoryprefix_t));
-            char buff[128] = {0};
-            _snprintf(buff, sizeof(buff), "%s = %i\n", dbg->Name, dbg->UInt64); 
-            Api->Log(buff);
+            DebugPrint(dbg, Api->Log);
         }
         Address += sizeof(memoryprefix_t) + Prefix->Size;
     }
