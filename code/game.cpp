@@ -28,7 +28,7 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
 
     gamememory_t RenderMemory = AllocateSubGameMemory(&FrameMemory, 1024);
     RenderPoint(&RenderMemory, 0, 0, 1, 0, 0);
-    RenderPoint(&RenderMemory, 0.5f, 0, 1, 1, 1);
+    RenderPoint(&RenderMemory, 0.5f, 0.5f, 1, 1, 1);
     RenderPoint(&RenderMemory, 1, 1, 0, 1, 0);
     PerformRender(&RenderMemory, GameState);
 }

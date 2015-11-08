@@ -93,7 +93,7 @@ void
 PerformRender(gamememory_t *GameMemory, gamestate_t *GameState)
 {
     drawbuffer_t *DrawBuffer = &GameState->DrawBuffer;
-    uint *Pixels  = (uint *)(DrawBuffer->Buffer);
+    char *Pixels  = (char *)(DrawBuffer->Buffer);
     char *Address = (char *)GameMemory->Data;
     char *LastAddress = Address + GameMemory->Size;
     while (Address < LastAddress) {
@@ -108,9 +108,9 @@ PerformRender(gamememory_t *GameMemory, gamestate_t *GameState)
                 case RenderOp_Point:
                     {
                         // NOTE: assumes world space coordinates
-                        uint wX = RenderData->Position.X * (float)(DrawBuffer->Width-1);
-                        uint wY = RenderData->Position.Y * (float)(DrawBuffer->Height-1);
-                        *(Pixels + wY*DrawBuffer->Width + wX) = 
+                        uint wX = RenderData->Position.X * (float)(DrawBuffer->Width);
+                        uint wY = RenderData->Position.Y * (float)(DrawBuffer->Height);
+                        *(uint *)(Pixels + wY*DrawBuffer->Width + wX) = 
                             FloatColorToRGB(RenderState.Color);
                     }
                     break;
