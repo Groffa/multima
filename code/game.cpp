@@ -22,26 +22,15 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
 
     if (FrameMemory.Size == 0) {
         FrameMemory = AllocateSubGameMemory(&GameState->Memory, GameState->Memory.Size / 4);
-    } else {
-        // Clear frame memory each time (e.g. it works like the stack)
-        memset(FrameMemory.Data, 0, FrameMemory.Size);
     }
+    // Clear frame memory each time (e.g. it works like the stack)
+    memset(FrameMemory.Data, 0, FrameMemory.Size);
 
-    TIMER("Frame");
-    {
-        TIMER("Alloc A");
-        int *A = Alloc(int, &FrameMemory);
-        *A = 0x1234;
-    }
-
-    char *B = Alloc(char, &FrameMemory);
-    *B = 'A';
-
-    int *C = Alloc(int, &FrameMemory);
-    *C = 0x5678;
-
-    //char *D = Alloc(char[10], &FrameMemory);
-    //*D = "Hej\0";
+    gamememory_t RenderMemory = AllocateSubGameMemory(&FrameMemory, 1024);
+    RenderPoint(&RenderMemory, 0, 0, 1, 0, 0);
+    RenderPoint(&RenderMemory, 0.5f, 0, 1, 1, 1);
+    RenderPoint(&RenderMemory, 1, 1, 0, 1, 0);
+    PerformRender(&RenderMemory, GameState);
 }
 
 #if defined(MULTIMA_DEBUG)

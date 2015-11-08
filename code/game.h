@@ -23,6 +23,7 @@ enum memorytype_e
     MemoryType_int,
     MemoryType_debugmarker_t,
     MemoryType_char,
+    MemoryType_renderdata_t,
 
     MemoryType_Count
 };

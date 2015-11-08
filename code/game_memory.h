@@ -53,6 +53,7 @@ Allocate(gamememory_t *GameMemory, uint Size, memorytype_e Type)
             Mark(Address + Size + sizeof(memoryprefix_t), false, LeftOver, MemoryType_NOOP);
         }
     }
+    assert(NewSpace);
     return NewSpace;
 }
 
