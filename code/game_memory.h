@@ -27,13 +27,15 @@ Allocate(gamememory_t *GameMemory, uint Size, memorytype_e Type)
     bool Found = false;
     while (!Found && Address < LastAddress) {
         Prefix = (memoryprefix_t *)Address;
-        if (Prefix->Taken) {
-            Address = ((char *)Address) + Prefix->Size + sizeof(memoryprefix_t);
-        } else {
+        if (!Prefix->Taken) {
             // Do we fit in here?
             if (Prefix->Size == 0 || Size <= Prefix->Size) {
                 Found = true;
             }
+        }
+        // Taken, or we didn't fit, so keep looking
+        if (!Found) {
+            Address = ((char *)Address) + Prefix->Size + sizeof(memoryprefix_t);
         }
     }
 
