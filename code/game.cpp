@@ -14,15 +14,26 @@
 gamememory_t GlobalDebugMemory = {0};
 
 static gamememory_t FrameMemory = {0};
+static gamememory_t TextureMemory = {0};
+
+static void
+InitSubMemories(gamestate_t *GameState)
+{
+    if (FrameMemory.Size == 0) {
+        FrameMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTE(1));
+    }
+    if (TextureMemory.Size == 0) {
+        TextureMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTE(1));
+    }
+}
 
 DLLEXPORT void
 RunFrame(gameapi_t *Api, gamestate_t *GameState)
 {
     int stopmarker = 666;
 
-    if (FrameMemory.Size == 0) {
-        FrameMemory = AllocateSubGameMemory(&GameState->Memory, GameState->Memory.Size / 4);
-    }
+    InitSubMemories(GameState);
+
     // Clear frame memory each time (e.g. it works like the stack)
     memset(FrameMemory.Data, 0, FrameMemory.Size);
 

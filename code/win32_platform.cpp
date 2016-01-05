@@ -151,7 +151,7 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
     GameState.DrawBuffer.Height = 480;
     InitScreenBuffer(&GameState, hwnd);
 
-    const uint MemorySize = MEGABYTES(1);
+    const uint MemorySize = MEGABYTES(5);
 
     AllocateGameMemory(&GameState, MemorySize);
 

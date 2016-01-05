@@ -4,6 +4,8 @@
 struct gameapi_t;
 struct gamestate_t;
 
+#define MEGABYTE(x)     ((x)*1024*1024)
+
 typedef void (*RunFrameFunc)(gameapi_t *, gamestate_t *);
 typedef void (*LogFunc)(const char *Text);
 
