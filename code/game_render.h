@@ -2,28 +2,10 @@
 
 #include "game_memory.h"
 
-/*
- * Game render pipeline:
- * (http://www.cs.princeton.edu/courses/archive/fall99/cs426/lectures/pipeline/sld007.htm)
- * 1. Modeling transformation
- *    Transform geometric primitives into WORLD coordinate
- *    system.
- * 2. Clipping
- *    Clip portions of geometric primitves residing ouside
- *    the window.
- * 3. Viewing transformation
- *    Transform the clipped primitives from WORLD to SCREEN
- *    coordinates.
- * 4. Scan conversion
- *    Fill pixels representing primitives
- *
- */
-
 enum renderop_e
 {
-    RenderOp_Invalid,
-    RenderOp_SetColor,
-    RenderOp_Point
+    RenderOp_invalid,
+    RenderOp_texture
 };
 
 struct rendercolor_t
@@ -40,22 +22,16 @@ struct renderposition_t
     float Y;
 };
 
-struct renderdata_t
+struct renderdata_header_t
 {
     renderop_e Op;
-    union {
-        rendercolor_t Color;
-        renderposition_t Position;
-    };
 };
 
-struct renderstate_t
+struct renderdata_texture_t
 {
-    rendercolor_t Color;
+    uint TextureId;
     renderposition_t Position;
 };
-
-static renderstate_t RenderState = {0};
 
 static uint
 FloatColorToRGB(rendercolor_t Color)
@@ -69,6 +45,14 @@ FloatColorToRGB(rendercolor_t Color)
     return ARGB;
 }
 
+renderposition_t
+Position(float X, float Y)
+{
+    renderposition_t Position = { X, Y };
+    return Position;
+}
+
+/*
 void
 RenderPoint(gamememory_t *GameMemory, float X, float Y, float R, float G, float B)
 {
@@ -79,6 +63,23 @@ RenderPoint(gamememory_t *GameMemory, float X, float Y, float R, float G, float 
     RenderData = Alloc(renderdata_t, GameMemory);
     RenderData->Op = RenderOp_Point;
     RenderData->Position = { X, Y };
+}
+*/
+
+static void
+BeginRenderOp(renderop_e Op, gamememory_t *Memory)
+{
+    renderdata_header_t *Header = Alloc(Memory, renderdata_header_t);
+    Header->Op = Op;
+}
+
+void
+RenderTexture(gamememory_t *Memory, renderposition_t Position, uint TextureId)
+{
+    BeginRenderOp(RenderOp_texture, Memory);
+    renderdata_texture_t *RenderData = Alloc(Memory, renderdata_texture_t);
+    RenderData->TextureId = TextureId;
+    RenderData->Position = Position;
 }
 
 /*
@@ -94,33 +95,11 @@ PerformRender(gamememory_t *GameMemory, gamestate_t *GameState)
 {
     drawbuffer_t *DrawBuffer = &GameState->DrawBuffer;
     char *Pixels  = (char *)(DrawBuffer->Buffer);
-    char *Address = (char *)GameMemory->Data;
-    char *LastAddress = Address + GameMemory->Size;
-    while (Address < LastAddress) {
-        memoryprefix_t *Prefix = (memoryprefix_t *)Address;
-        if (Prefix->Type == MemoryType_renderdata_t) {
-            renderdata_t *RenderData = (renderdata_t *)(Address + sizeof(memoryprefix_t));
-            switch (RenderData->Op) {
-                case RenderOp_SetColor:
-                    RenderState.Color = RenderData->Color;
-                    break;
+    unsigned char *Address = (unsigned char *)GameMemory->Data;
+    unsigned char *LastAddress = Address + GameMemory->Size;
 
-                case RenderOp_Point:
-                    {
-                        // NOTE: assumes world space coordinates
-                        uint wX = RenderData->Position.X * (float)(DrawBuffer->Width);
-                        uint wY = RenderData->Position.Y * (float)(DrawBuffer->Height);
-                        *(uint *)(Pixels + wY*DrawBuffer->Width + wX) = 
-                            FloatColorToRGB(RenderState.Color);
-                    }
-                    break;
-
-                default:
-                    assert(!"Unknown render operation");
-            }
-        }
-        Address += sizeof(memoryprefix_t) + Prefix->Size;
-    }
+    // TODO: remove need for Address < LastAddress, just eat bytes and interpret
+    // like a CPU
 }
 
 #define GAME_RENDER_H

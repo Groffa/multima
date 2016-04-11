@@ -1,93 +1,76 @@
-#ifndef GAME_MEMORY_H
+#ifndef GAME_MEMORY2_H
 
 #include <assert.h>
 #include "game.h"
 
-#define Alloc(Type, Memory)  (Type *)Allocate(Memory, sizeof(Type), MemoryType_##Type)
-#define Dealloc(Ptr, Memory) Deallocate(Memory, Ptr)
+#define Alloc(Memory, Type)     (Type *)Allocate(Memory, sizeof(Type)) 
 
-static void *
-Mark(char *Address, bool Taken, uint Size, memorytype_e Type)
+struct memorylink_t
 {
-    memoryprefix_t *Prefix = (memoryprefix_t *)Address;
-    Prefix->Taken = Taken;
-    Prefix->Size = Size;
-    Prefix->Type = Type;
-    return (void *)(Address + sizeof(memoryprefix_t));
+    bool Taken;
+    uint Size;
+    memorylink_t *Next;
+};
+
+static inline int
+RemainingSpace(gamememory_t *GameMemory)
+{
+    uint64 SpaceLeft = GameMemory->Size;
+    memorylink_t *Link = (memorylink_t *)GameMemory->Data;
+    uint64 *LastAddress = (uint64 *)(((char *)GameMemory->Data) + GameMemory->Size);
+    while (((uint64 *)Link) < LastAddress && Link->Next && Link->Taken) {
+        SpaceLeft -= (Link->Size + sizeof(memorylink_t));
+        Link = Link->Next;
+    }
+    return SpaceLeft;
+}
+
+static memorylink_t *
+FindFirstFit(gamememory_t *GameMemory, uint Size)
+{
+    uint64 SpaceLeft = GameMemory->Size;
+    memorylink_t *Link = (memorylink_t *)GameMemory->Data;
+    if (!Link->Taken) {
+        // First-time initializing
+        Link->Size = GameMemory->Size - sizeof(memorylink_t);
+    }
+    uint64 *LastAddress = (uint64 *)(((char *)GameMemory->Data) + GameMemory->Size);
+    do {
+        if (!Link->Taken && Link->Size >= Size) {
+            break;
+        }
+        SpaceLeft -= (Link->Size + sizeof(memorylink_t));
+        if (SpaceLeft < Size) {
+            Link = 0;
+            break;
+        }
+        Link = Link->Next;
+    } while (Link && (uint64 *)Link < LastAddress);
+    return Link;
 }
 
 void *
-Allocate(gamememory_t *GameMemory, uint Size, memorytype_e Type)
+Allocate(gamememory_t *GameMemory, uint Size)
 {
-    // TODO: check memory sizes, bounds
-    
-    char *Address = (char *)(GameMemory->Data);
-    char *LastAddress = (Address + GameMemory->Size);
-    memoryprefix_t *Prefix = 0;
-    bool Found = false;
-    while (!Found && Address < LastAddress) {
-        Prefix = (memoryprefix_t *)Address;
-        if (!Prefix->Taken) {
-            // Do we fit in here?
-            if (Prefix->Size == 0 || Size <= Prefix->Size) {
-                Found = true;
-            }
-        }
-        // Taken, or we didn't fit, so keep looking
-        if (!Found) {
-            Address = ((char *)Address) + Prefix->Size + sizeof(memoryprefix_t);
-        }
-    }
+    memorylink_t *Link = FindFirstFit(GameMemory, Size);
+    // TODO: check if Link is valid (otherwise we may be out of memory)
+    assert(Link);
 
-    void *NewSpace = 0;
-    if (Found && Prefix) {
-        // Split free memory slot into two; one taken and one left-over that's
-        // available.
-        uint LeftOver = 0;
-        if (Prefix->Size > 0) {
-            LeftOver = Prefix->Size - Size;
-        } else {
-            LeftOver = GameMemory->Size - Size;
-        }
-        assert(LeftOver >= 0);
-        NewSpace = Mark(Address, true, Size, Type);
-        if (LeftOver > 0) {
-            Mark(Address + Size + sizeof(memoryprefix_t), false, LeftOver, MemoryType_NOOP);
-        }
-    }
-    assert(NewSpace);
-    return NewSpace;
+    Link->Taken = true;
+    Link->Size = Size;
+    Link->Next = (memorylink_t *)(((char *)Link) + sizeof(memorylink_t) + Size);
+    return (void *)(((char *)Link) + sizeof(memorylink_t));
 }
-
 
 void
-Deallocate(gamememory_t *GameMemory, void *Memory)
+Deallocate(void *Ptr, bool Clear = false)
 {
-    // TODO: defragment (compress) memory
-    char *Address = (char *)Memory;
-    memoryprefix_t *Prefix = (memoryprefix_t *)(Address - sizeof(memoryprefix_t));
-    Prefix->Taken = false;
-
-    // Grow current freed slot's size with any additional
-    // following free slots (defragment)
-    char *NextAddress = Address + Prefix->Size;
-    char *LastAddress = (Address + GameMemory->Size);
-    memoryprefix_t *NextPrefix = (memoryprefix_t *)NextAddress;
-    while (!NextPrefix->Taken && NextPrefix->Size > 0 && NextAddress < LastAddress) {
-        Prefix->Size += NextPrefix->Size;
-        NextAddress += Prefix->Size;
-        memoryprefix_t *NextPrefix = (memoryprefix_t *)NextAddress;
+    memorylink_t *Link = (memorylink_t *)(((char *)Ptr) - sizeof(memorylink_t));
+    Link->Taken = false;
+    if (Clear) {
+        memset(Ptr, 0, Link->Size);
     }
 }
 
-gamememory_t
-AllocateSubGameMemory(gamememory_t *GameMemory, uint Size)
-{
-    gamememory_t NewGameMemory = {0};
-    NewGameMemory.Data = Allocate(GameMemory, Size, MemoryType_NOOP);
-    NewGameMemory.Size = Size;
-    return NewGameMemory;
-}
-
-#define GAME_MEMORY_H
+#define GAME_MEMORY2_H
 #endif

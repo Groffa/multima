@@ -2,13 +2,36 @@
 #include <assert.h>
 #include <stdio.h>
 #include "game.h"
+#include "game_memory.h"
+#include "game_basictypes.h"
 #include "win32_debug.h"
 
 LRESULT CALLBACK GameWindowCallback(HWND, UINT, WPARAM, LPARAM);
 
 gamestate_t GameState = {0};
 
-#define MEGABYTES(x)  ((x)*1024*1024)
+uint
+MapFile(const char *Filename, gamememory_t *Memory)
+{
+    // If Memory is null or of size zero, just return file's size
+    LARGE_INTEGER FileSize = {0};
+    HANDLE FileHandle = CreateFile(Filename, GENERIC_READ, 
+            FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    if (FileHandle == INVALID_HANDLE_VALUE) {
+        assert(!"File not found");
+    }
+    GetFileSizeEx(FileHandle, &FileSize);
+    if (Memory && Memory->Size > 0) {
+        char *Source = (char *)malloc(FileSize.QuadPart);
+        DWORD Read;
+        ReadFile(FileHandle, Source, FileSize.QuadPart, &Read, 0);
+        // TODO: MemoryType_char isn't quite right, but there's no datatype for this
+        CopyMemory(Memory->Data, Source, FileSize.QuadPart);
+        free(Source);
+    }
+    CloseHandle(FileHandle);
+    return FileSize.QuadPart;
+}
 
 static WNDCLASSEX
 RegisterGameWindowClass(HINSTANCE instance)
@@ -29,7 +52,9 @@ RegisterGameWindowClass(HINSTANCE instance)
 static void
 AllocateGameMemory(gamestate_t *GameState, uint64 Size)
 {
-    LOGF("Allocating %d", Size);
+    SYSTEM_INFO SystemInfo;
+    GetSystemInfo(&SystemInfo);
+    LOGF("Allocating %d. Page size of computer is %d.", Size, SystemInfo.dwPageSize);
 
     GameState->Memory.Size = Size;
     GameState->Memory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -72,16 +97,10 @@ gameapi_t LoadGame()
     assert(api.Handle != 0);
    
     api.Log = Log;
+    api.MapFile = MapFile;
 
-    api.RunFrame = (RunFrameFunc) GetProcAddress((HMODULE)api.Handle, "RunFrame");
+    api.RunFrame = (runframe_f) GetProcAddress((HMODULE)api.Handle, "RunFrame");
     assert(api.RunFrame != 0);
-
-#if defined(MULTIMA_DEBUG)
-    api.DebugBeginFrame = (RunFrameFunc) GetProcAddress((HMODULE)api.Handle, "DebugBeginFrame");
-    api.DebugEndFrame = (RunFrameFunc) GetProcAddress((HMODULE)api.Handle, "DebugEndFrame");
-    assert(api.DebugBeginFrame != 0);
-    assert(api.DebugEndFrame != 0);
-#endif
 
     return api;
 }
@@ -151,7 +170,7 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
     GameState.DrawBuffer.Height = 480;
     InitScreenBuffer(&GameState, hwnd);
 
-    const uint MemorySize = MEGABYTES(5);
+    const uint MemorySize = 4096;       // One page
 
     AllocateGameMemory(&GameState, MemorySize);
 
@@ -183,12 +202,8 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
 
 #if defined(MULTIMA_DEBUG)
         ClearLog();
-        GameApi.DebugBeginFrame(&GameApi, &GameState);
 #endif
         GameApi.RunFrame(&GameApi, &GameState);
-#if defined(MULTIMA_DEBUG)
-        GameApi.DebugEndFrame(&GameApi, &GameState);
-#endif
 
         HDC hdc = GetDC(hwnd);
         const int res = StretchDIBits(

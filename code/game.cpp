@@ -7,23 +7,36 @@
 #include "game.h"
 #include "game_render.h"
 #include "game_memory.h"
-#include "game_debug.h"
+#include "game_arts.h"
 
 #define DLLEXPORT   extern "C" __declspec(dllexport)
 
-gamememory_t GlobalDebugMemory = {0};
-
 static gamememory_t FrameMemory = {0};
-static gamememory_t TextureMemory = {0};
+static gamememory_t ArtsMemory = {0};
 
 static void
 InitSubMemories(gamestate_t *GameState)
 {
     if (FrameMemory.Size == 0) {
-        FrameMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTE(1));
+        //FrameMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTE(1));
     }
-    if (TextureMemory.Size == 0) {
-        TextureMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTE(1));
+    if (ArtsMemory.Size == 0) {
+        //ArtsMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTE(2));
+    }
+}
+
+void
+LoadArts(const char *Filename, gameapi_t *Api, gamememory_t *Memory)
+{
+    Api->MapFile(Filename, Memory);
+    artfile_header_t *Header = (artfile_header_t *)Memory->Data;
+
+    if (Header->Magic != ArtFileMagic_v1) {
+        assert(!"Wrong art magic");
+    }
+        
+    for (uint i=0; i < Header->EntryCount; ++i) {
+        uint stophere = 123;
     }
 }
 
@@ -32,43 +45,24 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
 {
     int stopmarker = 666;
 
-    InitSubMemories(GameState);
+    if (!GameState->Initialized) {
+        InitSubMemories(GameState);
+        //LoadArts("items.art", Api, &ArtsMemory);
+        GameState->Initialized = true;
+    }
+
+    uint PageSize = 4096;
+    char *OnePage = (char *)Allocate(&GameState->Memory, 4096 - sizeof(memorylink_t));;
+    //char *OnePage = (char *)Allocate(&GameState->Memory, 4096);
+    for (uint i=0; i < PageSize - sizeof(memorylink_t); ++i) {
+        *(OnePage + i) = 'A' + (i % 26);
+    }
+    Deallocate(OnePage, true);
 
     // Clear frame memory each time (e.g. it works like the stack)
-    memset(FrameMemory.Data, 0, FrameMemory.Size);
+    // memset(FrameMemory.Data, 0, FrameMemory.Size);
 
-    gamememory_t RenderMemory = AllocateSubGameMemory(&FrameMemory, 1024);
-    RenderPoint(&RenderMemory, 0, 0, 1, 0, 0);
-    RenderPoint(&RenderMemory, 0.5f, 0.5f, 1, 1, 1);
-    RenderPoint(&RenderMemory, 1, 1, 0, 1, 0);
-    PerformRender(&RenderMemory, GameState);
+    //void *RenderMemory = Allocate(&GameState->Memory, MEGABYTES(1));
+    //RenderTexture(&RenderMemory, Position(0.25f, 0.5f), 666);
+    //PerformRender(&RenderMemory, GameState);
 }
-
-#if defined(MULTIMA_DEBUG)
-
-DLLEXPORT void
-DebugBeginFrame(gameapi_t *Api, gamestate_t *GameState)
-{
-    if (GlobalDebugMemory.Size == 0) {
-        GlobalDebugMemory = AllocateSubGameMemory(&GameState->Memory, GameState->Memory.Size / 4);
-    }
-    memset(GlobalDebugMemory.Data, 0, GlobalDebugMemory.Size);
-}
-
-DLLEXPORT void
-DebugEndFrame(gameapi_t *Api, gamestate_t *GameState)
-{
-    // TODO: collect debug data from frame
-    char *Address = (char *)GlobalDebugMemory.Data;
-    char *LastAddress = Address + GlobalDebugMemory.Size;
-    while (Address < LastAddress) {
-        memoryprefix_t *Prefix = (memoryprefix_t *)Address;
-        if (Prefix->Taken) {
-            debugmarker_t *dbg = (debugmarker_t *)(Address + sizeof(memoryprefix_t));
-            DebugPrint(dbg, Api->Log);
-        }
-        Address += sizeof(memoryprefix_t) + Prefix->Size;
-    }
-}
-
-#endif

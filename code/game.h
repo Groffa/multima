@@ -1,40 +1,13 @@
 #ifndef GAME_H
 #define GAME_H
 
-struct gameapi_t;
-struct gamestate_t;
-
-#define MEGABYTE(x)     ((x)*1024*1024)
-
-typedef void (*RunFrameFunc)(gameapi_t *, gamestate_t *);
-typedef void (*LogFunc)(const char *Text);
-
-typedef unsigned int uint;
-typedef unsigned __int64 uint64;
+#include "game_basictypes.h"
 
 struct drawbuffer_t
 {
     uint Width;
     uint Height;
     void *Buffer;
-};
-
-enum memorytype_e
-{
-    MemoryType_NOOP,
-    MemoryType_int,
-    MemoryType_debugmarker_t,
-    MemoryType_char,
-    MemoryType_renderdata_t,
-
-    MemoryType_Count
-};
-
-struct memoryprefix_t
-{
-    bool Taken;
-    uint Size;
-    memorytype_e Type;
 };
 
 struct gamememory_t
@@ -55,21 +28,22 @@ struct gamestate_t
     uint64 DeltaTime;
 };
 
+struct gameapi_t;
+typedef void (*runframe_f)(gameapi_t *, gamestate_t *);
+typedef void (*log_f)(const char *Text);
+typedef uint (*mapfile_f)(const char *Filename, gamememory_t *Memory);
+
 struct gameapi_t
 {
     // Loading stuff
     void *Handle;
 
     // From game.dll --> platform.cpp
-    LogFunc Log;
+    log_f Log;
 
     // Functions
-    RunFrameFunc RunFrame;
-
-#if defined(MULTIMA_DEBUG)
-    RunFrameFunc DebugBeginFrame;
-    RunFrameFunc DebugEndFrame;
-#endif
+    runframe_f RunFrame;
+    mapfile_f MapFile;
 };
 
 #endif
