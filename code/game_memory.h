@@ -36,7 +36,7 @@ FindFirstFit(gamememory_t *GameMemory, uint Size)
     }
     uint64 *LastAddress = (uint64 *)(((char *)GameMemory->Data) + GameMemory->Size);
     do {
-        if (!Link->Taken && Link->Size >= Size) {
+        if (!Link->Taken && (Link->Size == 0 || Link->Size >= Size)) {
             break;
         }
         SpaceLeft -= (Link->Size + sizeof(memorylink_t));
