@@ -47,7 +47,7 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
 
     if (!GameState->Initialized) {
         InitSubMemories(GameState);
-        //LoadArts("items.art", Api, &ArtsMemory);
+        LoadArts("game_items.art", Api, &ArtsMemory);
         GameState->Initialized = true;
     }
 
