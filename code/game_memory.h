@@ -79,5 +79,16 @@ Deallocate(void *Ptr, bool Clear = false)
     }
 }
 
+gamememory_t
+AllocateSubGameMemory(gamememory_t *GameMemory, uint Size)
+{
+    gamememory_t SubMemory = {0};
+    SubMemory.Data = Allocate(GameMemory, Size);
+    if (SubMemory.Data) {
+        SubMemory.Size = Size;
+    }
+    return SubMemory;
+}
+
 #define GAME_MEMORY2_H
 #endif

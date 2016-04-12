@@ -18,10 +18,10 @@ static void
 InitSubMemories(gamestate_t *GameState)
 {
     if (FrameMemory.Size == 0) {
-        //FrameMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTE(1));
+        FrameMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTES(1));
     }
     if (ArtsMemory.Size == 0) {
-        //ArtsMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTE(2));
+        ArtsMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTES(2));
     }
 }
 
