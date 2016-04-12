@@ -5,10 +5,16 @@
 
 #define Alloc(Memory, Type)     (Type *)Allocate(Memory, sizeof(Type)) 
 
+enum memorytag_e
+{
+    MemoryTag_NotSpecified
+};
+
 struct memorylink_t
 {
     bool Taken;
     uint Size;
+    memorytag_e Tag;
     memorylink_t *Next;
 };
 
@@ -50,7 +56,7 @@ FindFirstFit(gamememory_t *GameMemory, uint Size)
 }
 
 void *
-Allocate(gamememory_t *GameMemory, uint Size)
+Allocate(gamememory_t *GameMemory, uint Size, memorytag_e Tag = MemoryTag_NotSpecified)
 {
     memorylink_t *Link = FindFirstFit(GameMemory, Size);
     // TODO: check if Link is valid (otherwise we may be out of memory)
@@ -58,6 +64,7 @@ Allocate(gamememory_t *GameMemory, uint Size)
 
     Link->Taken = true;
     Link->Size = Size;
+    Link->Tag = Tag;
     Link->Next = (memorylink_t *)(((char *)Link) + sizeof(memorylink_t) + Size);
     return (void *)(((char *)Link) + sizeof(memorylink_t));
 }
