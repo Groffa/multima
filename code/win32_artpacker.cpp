@@ -30,6 +30,23 @@ WriteEntry(FILE *ArtFile, artfile_entry_t *Entry, char *Data)
     fwrite(Data, sizeof(char), Entry->Size, ArtFile);
 }
 
+static void
+ExtractEnumFriendlyFilename(char *Filename, char *BareFilename, uint BareFilenameSize = 0)
+{
+    int MaxLen = strlen(Filename);
+    if (BareFilenameSize > 0 && MaxLen >= BareFilenameSize) {
+        MaxLen = BareFilenameSize;
+    }
+    for (int i=0; i < MaxLen; ++i) {
+        if (Filename[i] == '.') {
+            break;
+        }
+        if (Filename[i] >= 'a' && Filename[i] <= 'z') {
+            BareFilename[i] = Filename[i];
+        }
+    }
+}
+
 static artfile_entry_t
 AppendImageTo(FILE *ArtFile, char *Filename)
 {
@@ -51,19 +68,41 @@ AppendImageTo(FILE *ArtFile, char *Filename)
     // Rework pixeldata into being 1 byte = 1 pixel either on or off (0x00 / 0xFF)
     char *NewImageData = (char *)calloc(BmpV5Header.bV5Width * BmpV5Header.bV5Height, 1); 
     const char *EndImageData = ImageData + BmpV5Header.bV5SizeImage;
-    int i = 0;
-    for (char *Color = ImageData; Color < EndImageData; ++i) {
+    uint ColorIndex = 0;
+    for (char *Color = ImageData; Color < EndImageData; ++ColorIndex) {
         const char B = *Color++;
         const char G = *Color++;
         const char R = *Color++;
         if (R || G || B) {
-            *(NewImageData + i) = 0xFF;
+            *(NewImageData + ColorIndex) = 0xFF;
         }
     }
     // Entry.Size = BmpV5Header.bV5SizeImage;
     Entry.Type = ArtFile_bitmap;
-    strncpy(Entry.Name, Filename, 16);
-    Entry.Name[16] = 0;
+
+    uint EntryNameIndex = 15;
+    uint FilenameSize = strlen(Filename);
+    bool FoundLastDot = false;
+    for (uint i=FilenameSize - 1; i >= 0 && EntryNameIndex >= 0; --i) {
+        char C = Filename[i];
+        if (FoundLastDot) {
+            if ((C >= 'A' && C <= 'Z') || (C >= 'a' && C <= 'z')) {
+                Entry.Name[EntryNameIndex--] = C;
+            } else {
+                break;
+            }
+        } else if (C == '.') {
+            FoundLastDot = true;
+        }
+    }
+    // Skip past those zeroes
+    uint EntryNameStartsAt = 0;
+    for (; Entry.Name[EntryNameStartsAt] == 0; ++EntryNameStartsAt);
+    for (uint i=EntryNameStartsAt; i < 16; ++i) {
+        Entry.Name[i-EntryNameStartsAt] = Entry.Name[i];
+        Entry.Name[i] = 0;
+    }
+
     Entry.Size = BmpV5Header.bV5Width * BmpV5Header.bV5Height;
     Entry.Dim.Width = BmpV5Header.bV5Width;
     Entry.Dim.Height = BmpV5Header.bV5Height;
@@ -76,20 +115,6 @@ AppendImageTo(FILE *ArtFile, char *Filename)
     fclose(File);
     
     return Entry;
-}
-
-static void
-ExtractEnumFriendlyFilename(char *Filename, char *BareFilename)
-{
-    int MaxLen = strlen(Filename);
-    for (int i=0; i < MaxLen; ++i) {
-        if (Filename[i] == '.') {
-            break;
-        }
-        if (Filename[i] >= 'a' && Filename[i] <= 'z') {
-            BareFilename[i] = Filename[i];
-        }
-    }
 }
 
 static unsigned int
@@ -109,12 +134,13 @@ FindAndPack(FILE *ArtFile, FILE *ArtIncludeFile, char *Directory, char *Pattern)
         char FullFilename[MAX_PATH] = {0};
         strncpy(FullFilename, Directory, strlen(Directory));
         strcat(FullFilename, FindData.cFileName);
+        uint EntryOffset = ftell(ArtFile);
         AppendImageTo(ArtFile, FullFilename);
         
         // Update include file
         char BareFilename[MAX_PATH] = {0};
         ExtractEnumFriendlyFilename(FindData.cFileName, BareFilename);
-        fprintf(ArtIncludeFile, "GameItem_%s = %i,\n", BareFilename, EntryCount);
+        fprintf(ArtIncludeFile, "GameItem_%s = %u,\n", BareFilename, EntryOffset);
 
         ++EntryCount;
     } while (FindNextFile(Handle, &FindData) != 0);
@@ -149,6 +175,8 @@ main(int argc, char **argv)
     // Generate include file
     FILE *ArtIncludeFile = fopen(ArtIncludeFilename, "w");
     fputs("#ifndef GAME_ART_ITEMS\n\n", ArtIncludeFile);
+    fputs("// These are offsets into the memory where the\n", ArtIncludeFile);
+    fputs("// specific artfile_entry_t can be found.\n", ArtIncludeFile);
     fputs("enum game_artitems_e {\n", ArtIncludeFile);
 
     // Find and pack our groups
