@@ -30,6 +30,14 @@ WriteEntry(FILE *ArtFile, artfile_entry_t *Entry, u8 *Data)
     fwrite(Data, sizeof(char), Entry->Size, ArtFile);
 }
 
+static bool
+IsAccepted(u8 C)
+{
+    return (C >= 'A' && C <= 'Z') ||
+           (C >= 'a' && C <= 'z') ||
+           (C >= '0' && C <= '9');
+}
+
 static void
 ExtractEnumFriendlyFilename(char *Filename, char *BareFilename, uint BareFilenameSize = 0)
 {
@@ -41,11 +49,12 @@ ExtractEnumFriendlyFilename(char *Filename, char *BareFilename, uint BareFilenam
         if (Filename[i] == '.') {
             break;
         }
-        if (Filename[i] >= 'a' && Filename[i] <= 'z') {
+        if (IsAccepted(Filename[i])) {
             BareFilename[i] = Filename[i];
         }
     }
 }
+
 
 static artfile_entry_t
 AppendImageTo(FILE *ArtFile, char *Filename)
@@ -89,7 +98,7 @@ AppendImageTo(FILE *ArtFile, char *Filename)
     for (uint i=FilenameSize - 1; i >= 0 && EntryNameIndex >= 0; --i) {
         char C = Filename[i];
         if (FoundLastDot) {
-            if ((C >= 'A' && C <= 'Z') || (C >= 'a' && C <= 'z')) {
+            if (IsAccepted(C)) {
                 Entry.Name[EntryNameIndex--] = C;
             } else {
                 break;
@@ -143,7 +152,7 @@ FindAndPack(FILE *ArtFile, FILE *ArtIncludeFile, char *Directory, char *Pattern)
         // Update include file
         char BareFilename[MAX_PATH] = {0};
         ExtractEnumFriendlyFilename(FindData.cFileName, BareFilename);
-        fprintf(ArtIncludeFile, "GameItem_%s = %u,\n", BareFilename, EntryOffset);
+        fprintf(ArtIncludeFile, "GameItem_%s = 0x%x,\n", BareFilename, EntryOffset);
 
         ++EntryCount;
     } while (FindNextFile(Handle, &FindData) != 0);
