@@ -67,7 +67,7 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
     Deallocate(OnePage, true);
 
     // Clear frame memory each time (e.g. it works like the stack)
-    // memset(FrameMemory.Data, 0, FrameMemory.Size);
+    memset(FrameMemory.Data, 0, FrameMemory.Size);
 
     //void *RenderMemory = Allocate(&GameState->Memory, MEGABYTES(1));
     //RenderTexture(&RenderMemory, Position(0.25f, 0.5f), 666);
