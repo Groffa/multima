@@ -21,13 +21,15 @@ MapFile(const char *Filename, gamememory_t *Memory)
         assert(!"File not found");
     }
     GetFileSizeEx(FileHandle, &FileSize);
-    if (Memory && Memory->Size > 0) {
+    if (Memory && Memory->Size >= FileSize.QuadPart) {
         char *Source = (char *)malloc(FileSize.QuadPart);
         DWORD Read;
         ReadFile(FileHandle, Source, FileSize.QuadPart, &Read, 0);
         // TODO: MemoryType_char isn't quite right, but there's no datatype for this
         CopyMemory(Memory->Data, Source, FileSize.QuadPart);
         free(Source);
+    } else {
+        assert(!"File too big");
     }
     CloseHandle(FileHandle);
     return FileSize.QuadPart;
@@ -170,7 +172,7 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
     GameState.DrawBuffer.Height = 480;
     InitScreenBuffer(&GameState, hwnd);
 
-    const uint MemorySize = MEGABYTES(4);       // One page
+    const uint MemorySize = MEGABYTES(16);
 
     AllocateGameMemory(&GameState, MemorySize);
 
