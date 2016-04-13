@@ -21,7 +21,7 @@ InitSubMemories(gamestate_t *GameState)
         FrameMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTES(1));
     }
     if (ArtsMemory.Size == 0) {
-        ArtsMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTES(2));
+        ArtsMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTES(10));
     }
 }
 
