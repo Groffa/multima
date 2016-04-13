@@ -25,7 +25,12 @@ InitSubMemories(gamestate_t *GameState)
     }
 }
 
-void
+#define GET_ENTRY(Mem, Offset)   ((artfile_entry_t *)(((u8*)Mem->Data) + Offset))
+#define GET_ENTRY_DATA(Mem, Offset)   ((u8 *)(((u8*)Mem->Data) + Offset + sizeof(artfile_entry_t)))
+
+#include "game_items.h"
+
+static void
 LoadArts(const char *Filename, gameapi_t *Api, gamememory_t *Memory)
 {
     Api->MapFile(Filename, Memory);
@@ -34,10 +39,12 @@ LoadArts(const char *Filename, gameapi_t *Api, gamememory_t *Memory)
     if (Header->Magic != ArtFileMagic_v1) {
         assert(!"Wrong art magic");
     }
-        
-    for (uint i=0; i < Header->EntryCount; ++i) {
-        uint stophere = 123;
-    }
+    artfile_entry_t *Entries[] = {
+        {GET_ENTRY(Memory, GameItem_abc80ways2die)},
+        {GET_ENTRY(Memory, GameItem_kungfu)}
+    };
+    u8 *kungfu_bitmap = GET_ENTRY_DATA(Memory, GameItem_kungfu);
+    uint hej=123;
 }
 
 DLLEXPORT void
