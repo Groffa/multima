@@ -24,7 +24,7 @@ CreateEntry(const char *Filename)
 }
 
 static void
-WriteEntry(FILE *ArtFile, artfile_entry_t *Entry, char *Data)
+WriteEntry(FILE *ArtFile, artfile_entry_t *Entry, u8 *Data)
 {
     fwrite(Entry, sizeof(artfile_entry_t), 1, ArtFile);
     fwrite(Data, sizeof(char), Entry->Size, ArtFile);
@@ -61,21 +61,24 @@ AppendImageTo(FILE *ArtFile, char *Filename)
     
     assert(BmpV5Header.bV5BitCount == 24);
 
-    char *ImageData = (char *)malloc(BmpV5Header.bV5SizeImage);
+    uint ImageSize = BmpV5Header.bV5Width * BmpV5Header.bV5Height;
+    u8 *ImageData = (u8 *)malloc(ImageSize);
     fseek(File, BmpFileHeader.bfOffBits, SEEK_SET);
-    fread(ImageData, BmpV5Header.bV5SizeImage, 1, File);
+    fread(ImageData, ImageSize, 1, File);
     
     // Rework pixeldata into being 1 byte = 1 pixel either on or off (0x00 / 0xFF)
-    char *NewImageData = (char *)calloc(BmpV5Header.bV5Width * BmpV5Header.bV5Height, 1); 
-    const char *EndImageData = ImageData + BmpV5Header.bV5SizeImage;
-    uint ColorIndex = 0;
-    for (char *Color = ImageData; Color < EndImageData; ++ColorIndex) {
-        const char B = *Color++;
-        const char G = *Color++;
-        const char R = *Color++;
+    //char *NewImageData = (char *)calloc(BmpV5Header.bV5Width * BmpV5Header.bV5Height, 1); 
+    u8 *NewImageData = (u8 *)malloc(ImageSize);
+    for (uint SrcIndex=0, DstIndex=0; DstIndex < ImageSize; DstIndex += 3, ++SrcIndex) {
+        const u8 *Color = ImageData + DstIndex;
+        const u8 B = *Color++;
+        const u8 G = *Color++;
+        const u8 R = *Color++;
+        u8 ColorData = 0;
         if (R || G || B) {
-            *(NewImageData + ColorIndex) = 0xFF;
+            ColorData = 0xFF; 
         }
+        *(NewImageData + SrcIndex) = ColorData;
     }
     // Entry.Size = BmpV5Header.bV5SizeImage;
     Entry.Type = ArtFile_bitmap;
