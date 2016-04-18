@@ -68,13 +68,15 @@ AppendImageTo(FILE *ArtFile, char *Filename)
     BITMAPV5HEADER BmpV5Header = {0};
     fread(&BmpV5Header, sizeof(BITMAPV5HEADER), 1, File);
     
-    assert(BmpV5Header.bV5BitCount == 24);
+    assert(BmpV5Header.bV5BitCount == 32);
 
-    uint ImageSize = BmpV5Header.bV5Width * BmpV5Header.bV5Height;
+    //uint ImageSize = BmpV5Header.bV5Width * BmpV5Header.bV5Height;
+    uint ImageSize = BmpV5Header.bV5SizeImage;
     u8 *ImageData = (u8 *)malloc(ImageSize);
     fseek(File, BmpFileHeader.bfOffBits, SEEK_SET);
     fread(ImageData, ImageSize, 1, File);
-    
+   
+#if 0
     // Rework pixeldata into being 1 byte = 1 pixel either on or off (0x00 / 0xFF)
     //char *NewImageData = (char *)calloc(BmpV5Header.bV5Width * BmpV5Header.bV5Height, 1); 
     u8 *NewImageData = (u8 *)malloc(ImageSize);
@@ -89,6 +91,21 @@ AppendImageTo(FILE *ArtFile, char *Filename)
         }
         *(NewImageData + SrcIndex) = ColorData;
     }
+#endif
+    u8 *NewImageData = (u8 *)malloc(BmpV5Header.bV5Width * BmpV5Header.bV5Height);
+    uint DstIndex = 0;
+    for (uint SrcIndex=0; SrcIndex < ImageSize;) {
+        u8 A = *(ImageData + SrcIndex++);
+        u8 B = *(ImageData + SrcIndex++);
+        u8 G = *(ImageData + SrcIndex++);
+        u8 R = *(ImageData + SrcIndex++);
+        u8 ColorData = 0;
+        if (R || G || B) {
+            ColorData = 0xFF;
+        }
+        *(NewImageData + DstIndex++) = ColorData;
+    }
+
     // Entry.Size = BmpV5Header.bV5SizeImage;
     Entry.Type = ArtFile_bitmap;
 
@@ -174,8 +191,8 @@ main(int argc, char **argv)
     char ArtIncludeFilename[255] = {0};
     strncpy(ArtFilename, argv[2], strlen(argv[2]));
     strncpy(ArtIncludeFilename, ArtFilename, strlen(ArtFilename));
-    strcat(ArtFilename, ".art");
-    strcat(ArtIncludeFilename, ".h");
+    strcat(ArtFilename, ARTFILE_DEFAULT_FILENAME ".art");
+    strcat(ArtIncludeFilename, ARTFILE_DEFAULT_FILENAME ".h");
 
     // Create new art file. The header will be written AFTER we've processed
     // all files
@@ -186,10 +203,10 @@ main(int argc, char **argv)
 
     // Generate include file
     FILE *ArtIncludeFile = fopen(ArtIncludeFilename, "w");
-    fputs("#ifndef GAME_ART_ITEMS\n\n", ArtIncludeFile);
+    fputs("#ifndef GAME_ITEMS_H\n\n", ArtIncludeFile);
     fputs("// These are offsets into the memory where the\n", ArtIncludeFile);
     fputs("// specific artfile_entry_t can be found.\n", ArtIncludeFile);
-    fputs("enum game_artitems_e {\n", ArtIncludeFile);
+    fputs("enum game_item_e {\n", ArtIncludeFile);
 
     // Find and pack our groups
     int EntryCount = FindAndPack(ArtFile, ArtIncludeFile, argv[1], "*.bmp");
@@ -206,7 +223,7 @@ main(int argc, char **argv)
 
     // Write footer of include file
     fputs("};\n\n", ArtIncludeFile);
-    fputs("#define GAME_ART_ITEMS\n#endif", ArtIncludeFile);
+    fputs("#define GAME_ITEMS_H\n#endif", ArtIncludeFile);
 
     // At the end of the day
     fclose(ArtFile);

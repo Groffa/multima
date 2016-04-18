@@ -17,7 +17,7 @@ del /Q w:\build\*.obj
 del /Q w:\build\*.pdb
 
 cl /Zi ..\code\win32_artpacker.cpp %LIBS%
-if exist win32_artpacker.exe win32_artpacker.exe ..\arts\ ..\code\game_items
+if exist win32_artpacker.exe win32_artpacker.exe ..\arts\ ..\code\
 if %ERRORLEVEL%==0 (
 cl /DGAME_TITLE=\"%GAME_TITLE%\" /O2 ..\code\game.cpp /LD
 cl /DGAME_TITLE=\"%GAME_TITLE%\" /O2 /Fe%GAME_TITLE% ..\code\win32_platform.cpp %LIBS%

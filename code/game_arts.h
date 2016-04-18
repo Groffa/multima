@@ -2,6 +2,11 @@
 
 #include "game_basictypes.h"
 
+#define ARTFILE_DEFAULT_FILENAME    "game_items"
+
+#define GET_ENTRY(Mem, Offset)   ((artfile_entry_t *)(((u8*)Mem->Data) + Offset))
+#define GET_ENTRY_DATA(Mem, Offset)   ((u8 *)(((u8*)Mem->Data) + Offset + sizeof(artfile_entry_t)))
+
 enum artfile_magic_e
 {
     ArtFileMagic_unknown = 0,
