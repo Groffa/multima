@@ -12,21 +12,18 @@
 #define DLLEXPORT   extern "C" __declspec(dllexport)
 
 static gamememory_t FrameMemory = {0};
-static gamememory_t ArtsMemory = {0};
+extern gamememory_t ArtsMemory;     // in game_render.h
 
 static void
 InitSubMemories(gamestate_t *GameState)
 {
     if (FrameMemory.Size == 0) {
-        FrameMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTES(1));
+        FrameMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTES(10));
     }
     if (ArtsMemory.Size == 0) {
         ArtsMemory = AllocateSubGameMemory(&GameState->Memory, MEGABYTES(10));
     }
 }
-
-#define GET_ENTRY(Mem, Offset)   ((artfile_entry_t *)(((u8*)Mem->Data) + Offset))
-#define GET_ENTRY_DATA(Mem, Offset)   ((u8 *)(((u8*)Mem->Data) + Offset + sizeof(artfile_entry_t)))
 
 #include "game_items.h"
 
@@ -39,13 +36,18 @@ LoadArts(const char *Filename, gameapi_t *Api, gamememory_t *Memory)
     if (Header->Magic != ArtFileMagic_v1) {
         assert(!"Wrong art magic");
     }
+#if 0
     artfile_entry_t *Entries[] = {
         {GET_ENTRY(Memory, GameItem_abc80ways2die)},
         {GET_ENTRY(Memory, GameItem_kungfu)}
     };
     u8 *kungfu_bitmap = GET_ENTRY_DATA(Memory, GameItem_kungfu);
     uint hej=123;
+#endif
 }
+
+static float X = 0; static float dX = 0.01f;
+static float Y = 0; static float dY = 0.02f;
 
 DLLEXPORT void
 RunFrame(gameapi_t *Api, gamestate_t *GameState)
@@ -58,6 +60,7 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
         GameState->Initialized = true;
     }
 
+    /*
     uint PageSize = 4096;
     char *OnePage = (char *)Allocate(&GameState->Memory, 4096 - sizeof(memorylink_t));;
     //char *OnePage = (char *)Allocate(&GameState->Memory, 4096);
@@ -65,11 +68,21 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
         *(OnePage + i) = 'A' + (i % 26);
     }
     Deallocate(OnePage, true);
+    */
 
     // Clear frame memory each time (e.g. it works like the stack)
     memset(FrameMemory.Data, 0, FrameMemory.Size);
 
-    //void *RenderMemory = Allocate(&GameState->Memory, MEGABYTES(1));
-    //RenderTexture(&RenderMemory, Position(0.25f, 0.5f), 666);
-    //PerformRender(&RenderMemory, GameState);
+    X += dX;
+    Y += dY;
+    if (X < abs((int)dX) || X > 1-(100/640.0f)) { dX = -dX; }
+    if (Y < abs((int)dY) || Y > 1-(100/480.0f)) { dY = -dY; }
+
+    // TODO: switch render memory to plain void * buffer, otherwise
+    // our memory links will screw up the buffer!
+    renderlist_t RenderList = AllocateRenderList(&FrameMemory, MEGABYTES(1));
+    Clear(&RenderList);
+    DrawBitmap(&RenderList, GameItem_ruta, X, Y);
+    //DrawBitmap(&RenderList, GameItem_abc80ways2die, 1, 1);
+    PerformRender(&RenderList, GameState);
 }

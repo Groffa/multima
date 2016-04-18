@@ -1,105 +1,164 @@
 #ifndef GAME_RENDER_H
 
 #include "game_memory.h"
+#include "game_items.h"
+#include "game_arts.h"
+
+static gamememory_t ArtsMemory = {0};
 
 enum renderop_e
 {
-    RenderOp_invalid,
-    RenderOp_texture
+    RenderOp_stop,      // Stop parsing render data stream
+    RenderOp_clear,
+    RenderOp_bitmap
 };
 
-struct rendercolor_t
+struct renderdata_bitmap_t
 {
-    float R;
-    float G;
-    float B;
-    float A;
+    game_item_e Id;
+    float X;            // [0, 1]
+    float Y;            // [0, 1]
+    float Width;        // 1.0 = full width
+    float Height;       // 1.0 = full height
 };
 
-struct renderposition_t
+struct renderlist_t
 {
-    float X;
-    float Y;
+    void *Data;
+    uint At;
+    uint Size;
 };
 
-struct renderdata_header_t
+static inline uint
+Minimum(uint A, uint B)
 {
-    renderop_e Op;
-};
+    if (A > B) {
+        return B;
+    } else {
+        return A;
+    }
+}
 
-struct renderdata_texture_t
+renderlist_t
+AllocateRenderList(gamememory_t *Memory, uint Size)
 {
-    uint TextureId;
-    renderposition_t Position;
-};
+    renderlist_t RenderList = {0};
+    RenderList.Size = Size;
+    RenderList.Data = Allocate(Memory, Size);
+    return RenderList;
+}
+
+void 
+AddToRenderList(renderlist_t *RenderList, void *Object, uint Size)
+{
+    assert((RenderList->Size - RenderList->At) >= Size);
+    memcpy(((u8 *)RenderList->Data) + RenderList->At, Object, Size);
+    RenderList->At += Size;
+}
+
+#define ADD_RENDERLIST(RenderList, Object)  AddToRenderList(RenderList, Object, sizeof(*Object))
+
+static
+void ADD_RENDERLIST_OP(renderlist_t *RenderList, renderop_e Op)
+{
+    renderop_e PushedOp = Op;
+    ADD_RENDERLIST(RenderList, &PushedOp);
+}
 
 static uint
-FloatColorToRGB(rendercolor_t Color)
+FloatColorToRGB(float R, float G, float B, float A = 1.0f)
 {
     // ARGB
-    uint ARGB = 0 |
-                (int)(255.0f * Color.R) << 16 |
-                (int)(255.0f * Color.G) << 8 |
-                (int)(255.0f * Color.B) |
-                (int)(255.0f * Color.A) << 24;
+    uint ARGB = (uint)(255.0f * R) << 16 |
+                (uint)(255.0f * G) << 8 |
+                (uint)(255.0f * B) |
+                (uint)(255.0f * A) << 24;
     return ARGB;
 }
 
-renderposition_t
-Position(float X, float Y)
-{
-    renderposition_t Position = { X, Y };
-    return Position;
-}
-
-/*
 void
-RenderPoint(gamememory_t *GameMemory, float X, float Y, float R, float G, float B)
+Clear(renderlist_t *RenderList, float R = 0, float G = 0, float B = 0)
 {
-    renderdata_t *RenderData = Alloc(renderdata_t, GameMemory);
-    RenderData->Op = RenderOp_SetColor;
-    RenderData->Color = { R, G, B, 1.0f };
-
-    RenderData = Alloc(renderdata_t, GameMemory);
-    RenderData->Op = RenderOp_Point;
-    RenderData->Position = { X, Y };
-}
-*/
-
-static void
-BeginRenderOp(renderop_e Op, gamememory_t *Memory)
-{
-    renderdata_header_t *Header = Alloc(Memory, renderdata_header_t);
-    Header->Op = Op;
+    ADD_RENDERLIST_OP(RenderList, RenderOp_clear);
+    uint Color = FloatColorToRGB(R, G, B);
+    ADD_RENDERLIST(RenderList, &Color);
 }
 
 void
-RenderTexture(gamememory_t *Memory, renderposition_t Position, uint TextureId)
+DrawBitmap(renderlist_t *RenderList, game_item_e BitmapId, float X, float Y,
+           float Width = 1.0, float Height = 1.0)
 {
-    BeginRenderOp(RenderOp_texture, Memory);
-    renderdata_texture_t *RenderData = Alloc(Memory, renderdata_texture_t);
-    RenderData->TextureId = TextureId;
-    RenderData->Position = Position;
+    ADD_RENDERLIST_OP(RenderList, RenderOp_bitmap);
+
+    renderdata_bitmap_t Bitmap;
+    Bitmap.Id = BitmapId;
+    Bitmap.X = X;
+    Bitmap.Y = Y;
+    Bitmap.Width = Width;
+    Bitmap.Height = Height;
+    ADD_RENDERLIST(RenderList, &Bitmap);
 }
 
-/*
- * NOTE:
- * this is only testing code. Positions are currently in world space already,
- * which is wrong since they'd be in model space naturally, so we'd need
- * to convert from model to world space.
- * And to projection after that?
- */
-
 void
-PerformRender(gamememory_t *GameMemory, gamestate_t *GameState)
+PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
 {
     drawbuffer_t *DrawBuffer = &GameState->DrawBuffer;
-    char *Pixels  = (char *)(DrawBuffer->Buffer);
-    unsigned char *Address = (unsigned char *)GameMemory->Data;
-    unsigned char *LastAddress = Address + GameMemory->Size;
+    uint BufferSize = DrawBuffer->Width * DrawBuffer->Height;
+    u8 *Pixels  = (u8 *)(DrawBuffer->Buffer);
+    u8 *Address = (u8 *)RenderList->Data;
 
-    // TODO: remove need for Address < LastAddress, just eat bytes and interpret
-    // like a CPU
+    for (renderop_e RenderOp = (renderop_e)*Address;
+         RenderOp != RenderOp_stop;
+         RenderOp = (renderop_e)*Address)
+    {
+        // Skip past render op
+        Address += sizeof(renderop_e);
+
+#define RENDERDATA(SubType)    (renderdata_##SubType##_t *)Address; Address += sizeof(renderdata_##SubType##_t)
+
+        switch (RenderOp) {
+            case RenderOp_clear:
+            {
+                uint Color = *(uint *)Address;
+                Address += sizeof(uint);
+                uint *Dst = (uint *)Pixels;
+                for (uint i=0; i < BufferSize; ++i) {
+                    *Dst++ = Color;
+                }
+                break;
+            }
+
+            case RenderOp_bitmap:
+            {
+                renderdata_bitmap_t *Bitmap = RENDERDATA(bitmap);
+                artfile_entry_t *Entry = GET_ENTRY((&ArtsMemory), Bitmap->Id);
+                u8 *EntryData = GET_ENTRY_DATA((&ArtsMemory), Bitmap->Id);
+                uint BitmapMinX = Bitmap->X * DrawBuffer->Width;
+                uint BitmapMinY = Bitmap->Y * DrawBuffer->Height;
+                uint BitmapMaxX = BitmapMinX + (Bitmap->Width * Entry->Dim.Width);
+                uint BitmapMaxY = BitmapMinY + (Bitmap->Height * Entry->Dim.Height);
+                uint EndX = BitmapMaxX; //Minimum(BitmapMaxX, DrawBuffer->Width-1);
+                uint EndY = Minimum(BitmapMaxY, DrawBuffer->Height-1);
+                uint *Dst = (uint *)(Pixels + 4*(BitmapMinY * DrawBuffer->Width + BitmapMinX));
+                u8 *Src = EntryData;
+                for (uint Y = BitmapMinY; Y < EndY; ++Y) {
+                    for (uint X = BitmapMinX; X < EndX; ++X) {
+                        u8 C = *EntryData++;
+                        float fC = (C ? 255 / (float)C : 0);
+                        *Dst++ = FloatColorToRGB(fC, fC, fC, 0);
+                    }
+                    Dst += (DrawBuffer->Width - Entry->Dim.Width);
+                }
+                break;
+            }
+
+            default:
+                assert(!"Unknown render op");
+        }
+
+#undef RENDERDATA
+
+    }
 }
 
 #define GAME_RENDER_H
