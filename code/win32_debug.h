@@ -20,11 +20,13 @@ static struct
 static void
 InitConsole()
 {
+#if 0
     if (!GameConsole.Init) {
         AllocConsole();
         GameConsole.OutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
         GameConsole.Init = true;
-    } 
+    }
+#endif
 }
 
 void

@@ -121,6 +121,9 @@ static LRESULT
 GameWindowCallback(HWND wnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg) {
+        case WM_ERASEBKGND:
+            return 1;
+
         case WM_ACTIVATE:
             GameState.Running = (LOWORD(wParam) != WA_INACTIVE);
             return 0;
@@ -172,11 +175,11 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
     GameState.DrawBuffer.Height = 480;
     InitScreenBuffer(&GameState, hwnd);
 
-    const uint MemorySize = MEGABYTES(16);
+    const uint MemorySize = MEGABYTES(32);
 
     AllocateGameMemory(&GameState, MemorySize);
 
-    float Scale = 2.0f;
+    float Scale = 1.0f;
     
     LARGE_INTEGER StartCounter = {0};
     uint64 FrameTargetMS = 16;  // 60 FPS
