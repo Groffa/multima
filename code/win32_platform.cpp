@@ -207,6 +207,8 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
     LARGE_INTEGER Frequency; 
     QueryPerformanceFrequency(&Frequency);
     
+    HDC hdc = GetDC(hwnd);
+
     bool GameRunning = true;
     while (GameRunning) {
         QueryPerformanceCounter(&StartCounter);
@@ -231,7 +233,6 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
 #endif
         GameApi.RunFrame(&GameApi, &GameState);
 
-        HDC hdc = GetDC(hwnd);
         const int res = StretchDIBits(
             hdc,
             0,
@@ -247,7 +248,6 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
             DIB_RGB_COLORS,
             SRCCOPY
         );
-        ReleaseDC(hwnd, hdc);
 
         LARGE_INTEGER EndCounter = {0};
         QueryPerformanceCounter(&EndCounter);
