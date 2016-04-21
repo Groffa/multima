@@ -13,6 +13,14 @@ enum renderop_e
     RenderOp_bitmap
 };
 
+struct color_t
+{
+    float R;
+    float G;
+    float B;
+    float A;
+};
+
 struct renderdata_bitmap_t
 {
     game_item_e Id;
@@ -20,6 +28,7 @@ struct renderdata_bitmap_t
     float Y;            // [0, 1]
     float Width;        // 1.0 = full width
     float Height;       // 1.0 = full height
+    uint Color;         // Use FloatColorToRGB to compute this
 };
 
 struct renderlist_t
@@ -37,6 +46,18 @@ Minimum(uint A, uint B)
     } else {
         return A;
     }
+}
+
+inline color_t
+Color(float R, float G, float B, float A = 1.0f)
+{
+    return { R, G, B, A };
+}
+
+inline color_t
+White()
+{
+    return Color(1, 1, 1);
 }
 
 renderlist_t
@@ -86,7 +107,7 @@ Clear(renderlist_t *RenderList, float R = 0, float G = 0, float B = 0)
 
 void
 DrawBitmap(renderlist_t *RenderList, game_item_e BitmapId, float X, float Y,
-           float Width = 1.0, float Height = 1.0)
+           color_t Color = White(), float Width = 1.0, float Height = 1.0)
 {
     ADD_RENDERLIST_OP(RenderList, RenderOp_bitmap);
 
@@ -96,6 +117,7 @@ DrawBitmap(renderlist_t *RenderList, game_item_e BitmapId, float X, float Y,
     Bitmap.Y = Y;
     Bitmap.Width = Width;
     Bitmap.Height = Height;
+    Bitmap.Color = FloatColorToRGB(Color.R, Color.G, Color.B, Color.A);
     ADD_RENDERLIST(RenderList, &Bitmap);
 }
 
@@ -144,8 +166,16 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                 for (uint Y = BitmapMinY; Y < EndY; ++Y) {
                     for (uint X = BitmapMinX; X < EndX; ++X) {
                         u8 C = *EntryData++;
+#if 0
                         float fC = (C ? 255 / (float)C : 0);
                         *Dst++ = FloatColorToRGB(fC, fC, fC, 0);
+#else
+                        uint FinalColor = 0;
+                        if (C) {
+                            FinalColor = Bitmap->Color;
+                        }
+                        *Dst++ = FinalColor;
+#endif
                     }
                     Dst += (DrawBuffer->Width - Entry->Dim.Width);
                 }
