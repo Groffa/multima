@@ -46,8 +46,8 @@ LoadArts(const char *Filename, gameapi_t *Api, gamememory_t *Memory)
 #endif
 }
 
-static float X = 0; static float dX = 0.01f;
-static float Y = 0; static float dY = 0.02f;
+static float X = 0.7f; static float dX = 0.002f;
+static float Y = 0; static float dY = 0.001f;
 
 DLLEXPORT void
 RunFrame(gameapi_t *Api, gamestate_t *GameState)
@@ -73,16 +73,26 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
     // Clear frame memory each time (e.g. it works like the stack)
     memset(FrameMemory.Data, 0, FrameMemory.Size);
 
+    if (GameState->Input.Right) {
+        X += (100/64000.0f);
+    } else if (GameState->Input.Left) {
+        X -= (100/64000.0f);
+    }
+    if (GameState->Input.Up) {
+        Y -= (100/48000.0f);
+    } else if (GameState->Input.Down) {
+        Y += (100/48000.0f);
+    }
+
+#if 0
     X += dX;
     Y += dY;
-    if (X < abs((int)dX) || X > 1-(100/640.0f)) { dX = -dX; }
+    //if (X < abs((int)dX) || X > 1-(100/640.0f)) { dX = -dX; }
     if (Y < abs((int)dY) || Y > 1-(100/480.0f)) { dY = -dY; }
+#endif
 
-    // TODO: switch render memory to plain void * buffer, otherwise
-    // our memory links will screw up the buffer!
     renderlist_t RenderList = AllocateRenderList(&FrameMemory, MEGABYTES(1));
     Clear(&RenderList);
-    DrawBitmap(&RenderList, GameItem_ruta, X, Y);
-    //DrawBitmap(&RenderList, GameItem_abc80ways2die, 1, 1);
+    DrawBitmap(&RenderList, GameItem_demon, X, Y);
     PerformRender(&RenderList, GameState);
 }
