@@ -55,6 +55,11 @@ ExtractEnumFriendlyFilename(char *Filename, char *BareFilename, uint BareFilenam
     }
 }
 
+static u8
+Luminosity(u8 R, u8 G, u8 B)
+{
+    return (u8)(0.21f * R + 0.72f * G + 0.07f * B);
+}
 
 static artfile_entry_t
 AppendImageTo(FILE *ArtFile, char *Filename)
@@ -76,23 +81,8 @@ AppendImageTo(FILE *ArtFile, char *Filename)
     fseek(File, BmpFileHeader.bfOffBits, SEEK_SET);
     fread(ImageData, ImageSize, 1, File);
    
-#if 0
-    // Rework pixeldata into being 1 byte = 1 pixel either on or off (0x00 / 0xFF)
-    //char *NewImageData = (char *)calloc(BmpV5Header.bV5Width * BmpV5Header.bV5Height, 1); 
-    u8 *NewImageData = (u8 *)malloc(ImageSize);
-    for (uint SrcIndex=0, DstIndex=0; DstIndex < ImageSize; DstIndex += 3, ++SrcIndex) {
-        const u8 *Color = ImageData + DstIndex;
-        const u8 B = *Color++;
-        const u8 G = *Color++;
-        const u8 R = *Color++;
-        u8 ColorData = 0;
-        if (R || G || B) {
-            ColorData = 0xFF; 
-        }
-        *(NewImageData + SrcIndex) = ColorData;
-    }
-#endif
-    u8 *NewImageData = (u8 *)malloc(BmpV5Header.bV5Width * BmpV5Header.bV5Height);
+    uint NewImageSize = BmpV5Header.bV5Width * BmpV5Header.bV5Height;
+    u8 *NewImageData = (u8 *)malloc(NewImageSize);
     uint DstIndex = 0;
     for (uint SrcIndex=0; SrcIndex < ImageSize;) {
         u8 A = *(ImageData + SrcIndex++);
@@ -101,9 +91,21 @@ AppendImageTo(FILE *ArtFile, char *Filename)
         u8 R = *(ImageData + SrcIndex++);
         u8 ColorData = 0;
         if (R || G || B) {
-            ColorData = 0xFF;
+            ColorData = Luminosity(R, G, B);
         }
         *(NewImageData + DstIndex++) = ColorData;
+    }
+
+    // Bottom-up bitmap? Then let's reverse it
+    if (BmpV5Header.bV5Height > 0) {
+        u8 *ReversedImageData = (u8 *)malloc(NewImageSize);
+        u8 *Src = NewImageData;
+        u8 *Dst = (u8 *)(ReversedImageData + NewImageSize - 1);
+        for (uint i=0; i < NewImageSize; ++i) {
+            *Dst-- = *Src++;
+        }
+        memcpy(NewImageData, ReversedImageData, NewImageSize);
+        free(ReversedImageData);
     }
 
     // Entry.Size = BmpV5Header.bV5SizeImage;
