@@ -160,6 +160,25 @@ InitScreenBuffer(gamestate_t *GameState, HWND hwnd)
     GameState->DrawBuffer.Buffer = memory;
 }
 
+static void
+FetchInput(gameinput_t *Input)
+{
+#define CHECK(Vkey, Var) \
+    { \
+        SHORT Result = GetAsyncKeyState(Vkey); \
+        Input->Var = (Result < 0); \
+    }
+
+    CHECK(VK_SHIFT, Shift);
+    CHECK(VK_CONTROL, Ctrl);
+    CHECK(VK_LEFT, Left);
+    CHECK(VK_RIGHT, Right);
+    CHECK(VK_UP, Up);
+    CHECK(VK_DOWN, Down);
+
+#undef CHECK
+}
+
 int 
 WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
 {
@@ -204,6 +223,8 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
                     break;
             }
         }
+
+        FetchInput(&GameState.Input);
 
 #if defined(MULTIMA_DEBUG)
         ClearLog();

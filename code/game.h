@@ -16,6 +16,17 @@ struct gamememory_t
     uint64 Size;
 };
 
+struct gameinput_t
+{
+    // TODO: mouse buttons, etc.
+    bool Shift;
+    bool Ctrl;
+    bool Left;
+    bool Right;
+    bool Up;
+    bool Down;
+};
+
 struct gamestate_t
 {
     bool Initialized;
@@ -24,6 +35,8 @@ struct gamestate_t
     drawbuffer_t DrawBuffer;
 
     gamememory_t Memory;
+
+    gameinput_t Input;
 
     uint64 DeltaTime;
 };
