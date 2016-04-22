@@ -155,12 +155,47 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                 renderdata_bitmap_t *Bitmap = RENDERDATA(bitmap);
                 artfile_entry_t *Entry = GET_ENTRY((&ArtsMemory), Bitmap->Id);
                 u8 *EntryData = GET_ENTRY_DATA((&ArtsMemory), Bitmap->Id);
+                int StartX = Bitmap->X * DrawBuffer->Width;
+                int StartY = Bitmap->Y * DrawBuffer->Height;
+                // Boundaries
+                StartX = (StartX < 0 ? 0 : StartX);
+                StartY = (StartY < 0 ? 0 : StartY);
+                
+                uint RealDimWidth = Entry->Dim.Width;
+                if (StartX + RealDimWidth > DrawBuffer->Width) {
+                    RealDimWidth -= (StartX + RealDimWidth) - DrawBuffer->Width;
+                }
+                uint RealDimHeight = Entry->Dim.Height;
+                if (StartY + RealDimHeight > DrawBuffer->Height) {
+                    RealDimHeight -= (StartY + RealDimHeight) - DrawBuffer->Height;
+                }
+
+                u8 *Src = EntryData;
+                uint *Dst = (uint *)(Pixels + 4 * (StartY * DrawBuffer->Width + StartX));
+                for (uint Y = 0; Y < Entry->Dim.Height; ++Y) {
+                    if (Y >= RealDimHeight) {
+                        break;
+                    }
+                    for (uint X = 0; X < Entry->Dim.Width; ++X) {
+                        u8 C = *Src++;
+                        uint FinalColor = 0;
+                        if (C) {
+                            FinalColor = Bitmap->Color;
+                        }
+                        if (X < RealDimWidth) {
+                            *Dst = FinalColor;
+                        }
+                        ++Dst;
+                    }
+                    Dst += DrawBuffer->Width - Entry->Dim.Width;
+                }
+#if 0
                 uint BitmapMinX = Bitmap->X * DrawBuffer->Width;
                 uint BitmapMinY = Bitmap->Y * DrawBuffer->Height;
                 uint BitmapMaxX = BitmapMinX + (Bitmap->Width * Entry->Dim.Width);
                 uint BitmapMaxY = BitmapMinY + (Bitmap->Height * Entry->Dim.Height);
-                uint EndX = BitmapMaxX; //Minimum(BitmapMaxX, DrawBuffer->Width-1);
-                uint EndY = Minimum(BitmapMaxY, DrawBuffer->Height-1);
+                uint EndX = Minimum(BitmapMaxX, DrawBuffer->Width);
+                uint EndY = Minimum(BitmapMaxY, DrawBuffer->Height);
                 uint *Dst = (uint *)(Pixels + 4*(BitmapMinY * DrawBuffer->Width + BitmapMinX));
                 u8 *Src = EntryData;
                 for (uint Y = BitmapMinY; Y < EndY; ++Y) {
@@ -177,11 +212,12 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                         *Dst++ = FinalColor;
 #endif
                     }
-                    Dst += (DrawBuffer->Width - Entry->Dim.Width);
+                    // Fast-forward to start of next line
+                    Dst += (DrawBuffer->Width - (EndX - BitmapMinX));
                 }
+#endif
                 break;
             }
-
             default:
                 assert(!"Unknown render op");
         }
