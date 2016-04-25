@@ -8,6 +8,8 @@
 #include "game_render.h"
 #include "game_memory.h"
 #include "game_arts.h"
+// For testing
+#include "game_items.h"
 
 #define DLLEXPORT   extern "C" __declspec(dllexport)
 
@@ -25,7 +27,6 @@ InitSubMemories(gamestate_t *GameState)
     }
 }
 
-#include "game_items.h"
 
 static void
 LoadArts(const char *Filename, gameapi_t *Api, gamememory_t *Memory)
@@ -36,14 +37,6 @@ LoadArts(const char *Filename, gameapi_t *Api, gamememory_t *Memory)
     if (Header->Magic != ArtFileMagic_v1) {
         assert(!"Wrong art magic");
     }
-#if 0
-    artfile_entry_t *Entries[] = {
-        {GET_ENTRY(Memory, GameItem_abc80ways2die)},
-        {GET_ENTRY(Memory, GameItem_kungfu)}
-    };
-    u8 *kungfu_bitmap = GET_ENTRY_DATA(Memory, GameItem_kungfu);
-    uint hej=123;
-#endif
 }
 
 static float X = 0.7f; static float dX = 0.002f;
@@ -59,16 +52,6 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
         LoadArts("game_items.art", Api, &ArtsMemory);
         GameState->Initialized = true;
     }
-
-    /*
-    uint PageSize = 4096;
-    char *OnePage = (char *)Allocate(&GameState->Memory, 4096 - sizeof(memorylink_t));;
-    //char *OnePage = (char *)Allocate(&GameState->Memory, 4096);
-    for (uint i=0; i < PageSize - sizeof(memorylink_t); ++i) {
-        *(OnePage + i) = 'A' + (i % 26);
-    }
-    Deallocate(OnePage, true);
-    */
 
     // Clear frame memory each time (e.g. it works like the stack)
     memset(FrameMemory.Data, 0, FrameMemory.Size);

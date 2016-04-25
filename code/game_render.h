@@ -206,35 +206,9 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                     }
                     Dst += DrawBuffer->Width - Entry->Dim.Width;
                 }
-#if 0
-                uint BitmapMinX = Bitmap->X * DrawBuffer->Width;
-                uint BitmapMinY = Bitmap->Y * DrawBuffer->Height;
-                uint BitmapMaxX = BitmapMinX + (Bitmap->Width * Entry->Dim.Width);
-                uint BitmapMaxY = BitmapMinY + (Bitmap->Height * Entry->Dim.Height);
-                uint EndX = Minimum(BitmapMaxX, DrawBuffer->Width);
-                uint EndY = Minimum(BitmapMaxY, DrawBuffer->Height);
-                uint *Dst = (uint *)(Pixels + 4*(BitmapMinY * DrawBuffer->Width + BitmapMinX));
-                u8 *Src = EntryData;
-                for (uint Y = BitmapMinY; Y < EndY; ++Y) {
-                    for (uint X = BitmapMinX; X < EndX; ++X) {
-                        u8 C = *EntryData++;
-#if 0
-                        float fC = (C ? 255 / (float)C : 0);
-                        *Dst++ = FloatColorToRGB(fC, fC, fC, 0);
-#else
-                        uint FinalColor = 0;
-                        if (C) {
-                            FinalColor = Bitmap->Color;
-                        }
-                        *Dst++ = FinalColor;
-#endif
-                    }
-                    // Fast-forward to start of next line
-                    Dst += (DrawBuffer->Width - (EndX - BitmapMinX));
-                }
-#endif
                 break;
             }
+
             default:
                 assert(!"Unknown render op");
         }
