@@ -39,8 +39,8 @@ LoadArts(const char *Filename, gameapi_t *Api, gamememory_t *Memory)
     }
 }
 
-static float X = 0.7f; static float dX = 0.002f;
-static float Y = 0; static float dY = 0.001f;
+static float X = 1;
+static float Y = 1;
 
 DLLEXPORT void
 RunFrame(gameapi_t *Api, gamestate_t *GameState)
@@ -57,25 +57,18 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
     memset(FrameMemory.Data, 0, FrameMemory.Size);
 
     if (GameState->Input.Right) {
-        X += (100/64000.0f);
+        X += 0.1f;
     } else if (GameState->Input.Left) {
-        X -= (100/64000.0f);
+        X -= 0.1f; 
     }
     if (GameState->Input.Up) {
-        Y -= (100/48000.0f);
+        Y -= 0.1f; 
     } else if (GameState->Input.Down) {
-        Y += (100/48000.0f);
+        Y += 0.1f; 
     }
-
-#if 0
-    X += dX;
-    Y += dY;
-    //if (X < abs((int)dX) || X > 1-(100/640.0f)) { dX = -dX; }
-    if (Y < abs((int)dY) || Y > 1-(100/480.0f)) { dY = -dY; }
-#endif
 
     renderlist_t RenderList = AllocateRenderList(&FrameMemory, MEGABYTES(1));
     Clear(&RenderList);
-    DrawBitmap(&RenderList, GameItem_demon, X, Y);
+    DrawBitmap(&RenderList, GameItem_demon, 0, 0, White(), X, Y);
     PerformRender(&RenderList, GameState);
 }

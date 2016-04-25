@@ -157,13 +157,15 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                 u8 *EntryData = GET_ENTRY_DATA((&ArtsMemory), Bitmap->Id);
                 int StartX = Bitmap->X * DrawBuffer->Width;
                 int StartY = Bitmap->Y * DrawBuffer->Height;
-               
+              
+                /*
                 if (((StartX + Entry->Dim.Width < 0) && (StartY + Entry->Dim.Height < 0)) ||
                      (StartX > DrawBuffer->Width) && (StartY > DrawBuffer->Height))
                 {
                     // Not visible
                     break;
                 }
+                */
 
                 uint RealDimWidth = Entry->Dim.Width;
                 uint RealDimHeight = Entry->Dim.Height;
@@ -188,13 +190,22 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                 }
 
                 uint *Dst = (uint *)(Pixels + 4 * (StartY * DrawBuffer->Width + StartX));
+                uint *LastDst = (uint *)(Pixels + 4 * DrawBuffer->Width * DrawBuffer->Height - 1);
+                float StepX = 1 / Bitmap->Width;
+                float StepY = 1 / Bitmap->Height;
 
-                for (uint Y = 0; Y < Entry->Dim.Height; ++Y) {
-                    if (Y >= RealDimHeight) {
+                for (float Y = 0; Y < Entry->Dim.Height; Y += StepY) {
+                    if (Y >= RealDimHeight || Dst > LastDst) {
                         break;
                     }
-                    for (uint X = 0; X < Entry->Dim.Width; ++X) {
-                        u8 C = *Src++;
+                    uint iY = (uint)Y;
+                    uint Scanline = 0;
+                    for (float X = 0; X < Entry->Dim.Width; X += StepX) {
+                        if (Dst > LastDst) {
+                            break;
+                        }
+                        uint iX = (uint)X;
+                        u8 C = *(Src + iY * Entry->Dim.Width + iX);
                         uint FinalColor = 0;
                         if (C) {
                             FinalColor = Bitmap->Color;
@@ -203,8 +214,9 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                             *Dst = FinalColor;
                         }
                         ++Dst;
+                        ++Scanline;
                     }
-                    Dst += DrawBuffer->Width - Entry->Dim.Width;
+                    Dst += DrawBuffer->Width - Scanline; 
                 }
                 break;
             }
