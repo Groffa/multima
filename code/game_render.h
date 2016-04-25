@@ -157,21 +157,38 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                 u8 *EntryData = GET_ENTRY_DATA((&ArtsMemory), Bitmap->Id);
                 int StartX = Bitmap->X * DrawBuffer->Width;
                 int StartY = Bitmap->Y * DrawBuffer->Height;
-                // Boundaries
-                StartX = (StartX < 0 ? 0 : StartX);
-                StartY = (StartY < 0 ? 0 : StartY);
-                
+               
+                if (((StartX + Entry->Dim.Width < 0) && (StartY + Entry->Dim.Height < 0)) ||
+                     (StartX > DrawBuffer->Width) && (StartY > DrawBuffer->Height))
+                {
+                    // Not visible
+                    break;
+                }
+
                 uint RealDimWidth = Entry->Dim.Width;
+                uint RealDimHeight = Entry->Dim.Height;
+
+                u8 *Src = EntryData;
+                if (StartY < 0) {
+                    Src += abs(StartY) * Entry->Dim.Width;
+                    RealDimHeight -= abs(StartY);
+                    StartY = 0;
+                }
+                if (StartX < 0) {
+                    Src += abs(StartX);
+                    RealDimWidth -= abs(StartX);
+                    StartX = 0;
+                }
+
                 if (StartX + RealDimWidth > DrawBuffer->Width) {
                     RealDimWidth -= (StartX + RealDimWidth) - DrawBuffer->Width;
                 }
-                uint RealDimHeight = Entry->Dim.Height;
                 if (StartY + RealDimHeight > DrawBuffer->Height) {
                     RealDimHeight -= (StartY + RealDimHeight) - DrawBuffer->Height;
                 }
 
-                u8 *Src = EntryData;
                 uint *Dst = (uint *)(Pixels + 4 * (StartY * DrawBuffer->Width + StartX));
+
                 for (uint Y = 0; Y < Entry->Dim.Height; ++Y) {
                     if (Y >= RealDimHeight) {
                         break;
