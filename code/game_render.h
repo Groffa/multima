@@ -122,6 +122,16 @@ DrawBitmap(renderlist_t *RenderList, game_item_e BitmapId, float X, float Y,
 }
 
 void
+static bool
+BoundsCheck(void *Base, uint Size, void *Ptr)
+{
+    u8 *Start = (u8 *)Base;
+    u8 *End = Start + Size;
+    u8 *iPtr = (u8 *)Ptr;
+    return iPtr >= Start && iPtr <= End;
+}
+
+void
 PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
 {
     drawbuffer_t *DrawBuffer = &GameState->DrawBuffer;
@@ -167,6 +177,9 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                 }
                 */
 
+                Bitmap->Width = (Bitmap->Width < 0 ? 0 : Bitmap->Width);
+                Bitmap->Height = (Bitmap->Height < 0 ? 0 : Bitmap->Height);
+
                 uint RealDimWidth = Entry->Dim.Width;
                 uint RealDimHeight = Entry->Dim.Height;
 
@@ -190,18 +203,23 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                 }
 
                 uint *Dst = (uint *)(Pixels + 4 * (StartY * DrawBuffer->Width + StartX));
-                uint *LastDst = (uint *)(Pixels + 4 * DrawBuffer->Width * DrawBuffer->Height - 1);
+                // uint *LastDst = (uint *)(Pixels + 4 * DrawBuffer->Width * DrawBuffer->Height - 1);
                 float StepX = 1 / Bitmap->Width;
                 float StepY = 1 / Bitmap->Height;
 
+                uint DrawBufferSize = 4 * DrawBuffer->Width * DrawBuffer->Height - 1;
+
                 for (float Y = 0; Y < Entry->Dim.Height; Y += StepY) {
-                    if (Y >= RealDimHeight || Dst > LastDst) {
+                    if (((uint)(Y+0.5f)) >= RealDimHeight || !BoundsCheck(Pixels, DrawBufferSize, Dst) /*Dst > LastDst*/) {
                         break;
                     }
                     uint iY = (uint)Y;
                     uint Scanline = 0;
                     for (float X = 0; X < Entry->Dim.Width; X += StepX) {
-                        if (Dst > LastDst) {
+                        //if (Dst > LastDst) {
+                        if (Scanline >= DrawBuffer->Width ||
+                            !BoundsCheck(Pixels, DrawBufferSize, Dst))
+                        {
                             break;
                         }
                         uint iX = (uint)X;
