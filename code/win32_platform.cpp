@@ -254,9 +254,12 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
         GameState.DeltaTime = EndCounter.QuadPart - StartCounter.QuadPart;
         uint64 FrameTimeMS = (1000 * GameState.DeltaTime) / Frequency.QuadPart;
 
+#if 0
+        // TODO: Enabling this makes the game stutter. Find a better alternative (vsync?)
         if (FrameTimeMS < FrameTargetMS) {
             Sleep(FrameTargetMS - FrameTimeMS);
         }
+#endif
 
         char WindowTitle[128] = {0};
         _snprintf(WindowTitle, sizeof(WindowTitle),
