@@ -25,8 +25,12 @@ struct color_t
 enum bitmap_flags_e
 {
     BitmapFlag_NothingSpecial = 0,
-    BitmapFlag_ColorKey = 0x1,     // Transparent? Black is always the transparent color in that case
-    BitmapFlag_Alpha = 0x2
+    BitmapFlag_ColorKey    = 0x1,     // Transparent? Black is always the transparent color in that case
+    BitmapFlag_Alpha       = 0x2,
+    BitmapFlag_AlignLeft   = 0x4,
+    BitmapFlag_AlignTop    = 0x8,
+    BitmapFlag_AlignRight  = 0x10,
+    BitmapFlag_AlignBottom = 0x20,
 };
 
 struct renderdata_bitmap_t
@@ -154,7 +158,8 @@ Clear(renderlist_t *RenderList, float R = 0, float G = 0, float B = 0)
 
 void
 DrawBitmap(renderlist_t *RenderList, game_item_e BitmapId, float X, float Y,
-           color_t Color = White(), float Width = 1.0, float Height = 1.0)
+           color_t Color = White(), float Width = 1.0, float Height = 1.0,
+           u8 BitmapFlags = BitmapFlag_Alpha)
 {
     ADD_RENDERLIST_OP(RenderList, RenderOp_bitmap);
 
@@ -219,7 +224,18 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                 int StartX = Bitmap->X * DrawBuffer->Width;
                 int StartY = Bitmap->Y * DrawBuffer->Height;
                 bool UseColorKey = Bitmap->Flags & BitmapFlag_ColorKey; 
-                bool UseAlpha = Bitmap->Flags & BitmapFlag_Alpha; 
+                bool UseAlpha = Bitmap->Flags & BitmapFlag_Alpha;
+
+                if (Bitmap->Flags & BitmapFlag_AlignLeft) {
+                    StartX = 0;
+                } else if (Bitmap->Flags & BitmapFlag_AlignRight) {
+                    StartX = DrawBuffer->Width - Entry->Dim.Width;
+                }
+                if (Bitmap->Flags & BitmapFlag_AlignTop) {
+                    StartY = 0;
+                } else if (Bitmap->Flags & BitmapFlag_AlignBottom) {
+                    StartY = DrawBuffer->Height - Entry->Dim.Height;
+                }
 
                 /*
                 if (((StartX + Entry->Dim.Width < 0) && (StartY + Entry->Dim.Height < 0)) ||

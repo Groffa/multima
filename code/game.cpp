@@ -56,19 +56,23 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
     // Clear frame memory each time (e.g. it works like the stack)
     memset(FrameMemory.Data, 0, FrameMemory.Size);
 
+    u8 Flags = BitmapFlag_Alpha;
+    
     if (GameState->Input.Right) {
-        X += 0.1f;
+        Flags |= BitmapFlag_AlignRight; 
     } else if (GameState->Input.Left) {
-        X -= 0.1f; 
+        Flags |= BitmapFlag_AlignLeft;
     }
     if (GameState->Input.Up) {
-        Y -= 0.1f; 
+        Flags |= BitmapFlag_AlignTop;
     } else if (GameState->Input.Down) {
-        Y += 0.1f; 
+        Flags |= BitmapFlag_AlignBottom;
     }
 
     renderlist_t RenderList = AllocateRenderList(&FrameMemory, MEGABYTES(1));
     Clear(&RenderList);
-    DrawBitmap(&RenderList, GameItem_demon, 0, 0, White(), X, Y);
+    DrawBitmap(&RenderList, GameItem_ruta, 0.1f, 0.1f, White(), 1, 1, Flags);
+    DrawBitmap(&RenderList, GameItem_demon, 0, 0, Color(1,0,0,0.5f), 1, 1);
+    DrawBitmap(&RenderList, GameItem_demon, 0.15f, 0.15f, Color(0,1,0,0.5f), 1, 1);
     PerformRender(&RenderList, GameState);
 }
