@@ -4,7 +4,6 @@
 #include "game.h"
 #include "game_memory.h"
 #include "game_basictypes.h"
-#include "win32_debug.h"
 
 LRESULT CALLBACK GameWindowCallback(HWND, UINT, WPARAM, LPARAM);
 
@@ -56,7 +55,7 @@ AllocateGameMemory(gamestate_t *GameState, uint64 Size)
 {
     SYSTEM_INFO SystemInfo;
     GetSystemInfo(&SystemInfo);
-    LOGF("Allocating %d. Page size of computer is %d.", Size, SystemInfo.dwPageSize);
+    //LOGF("Allocating %d. Page size of computer is %d.", Size, SystemInfo.dwPageSize);
 
     GameState->Memory.Size = Size;
     GameState->Memory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -86,6 +85,11 @@ CreateGameWindow()
     return wnd;
 }
 
+static void
+NoLog(const char *)
+{
+}
+
 static
 gameapi_t LoadGame()
 {
@@ -98,7 +102,7 @@ gameapi_t LoadGame()
 #endif
     assert(api.Handle != 0);
    
-    api.Log = Log;
+    api.Log = NoLog;
     api.MapFile = MapFile;
 
     api.RunFrame = (runframe_f) GetProcAddress((HMODULE)api.Handle, "RunFrame");
@@ -227,10 +231,6 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
         }
 
         FetchInput(&GameState.Input);
-
-#if defined(MULTIMA_DEBUG)
-        ClearLog();
-#endif
         GameApi.RunFrame(&GameApi, &GameState);
 
         const int res = StretchDIBits(
