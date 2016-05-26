@@ -42,20 +42,24 @@ struct gamestate_t
 };
 
 struct gameapi_t;
+typedef void (*startup_f)(gameapi_t *, gamestate_t *);
 typedef void (*runframe_f)(gameapi_t *, gamestate_t *);
 typedef void (*log_f)(const char *Text);
 typedef uint (*mapfile_f)(const char *Filename, gamememory_t *Memory);
+typedef gamememory_t (*alloc_f)(uint64 Size);
 
 struct gameapi_t
 {
     // Loading stuff
     void *Handle;
 
-    // From game.dll --> platform.cpp
+    // From game layer --> platform layer
     log_f Log;
+    alloc_f AllocateMemory;
 
     // Functions
-    runframe_f RunFrame;
+    startup_f StartUp;      // Called once, at startup
+    runframe_f RunFrame;    // Called each frame
     mapfile_f MapFile;
 };
 

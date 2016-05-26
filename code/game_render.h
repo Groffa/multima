@@ -229,12 +229,12 @@ PerformRender(renderlist_t *RenderList, gamestate_t *GameState)
                 if (Bitmap->Flags & BitmapFlag_AlignLeft) {
                     StartX = 0;
                 } else if (Bitmap->Flags & BitmapFlag_AlignRight) {
-                    StartX = DrawBuffer->Width - Entry->Dim.Width;
+                    StartX = DrawBuffer->Width - Entry->Dim.Width * Bitmap->Width;
                 }
                 if (Bitmap->Flags & BitmapFlag_AlignTop) {
                     StartY = 0;
                 } else if (Bitmap->Flags & BitmapFlag_AlignBottom) {
-                    StartY = DrawBuffer->Height - Entry->Dim.Height;
+                    StartY = DrawBuffer->Height - Entry->Dim.Height * Bitmap->Height;
                 }
 
                 /*

@@ -50,15 +50,18 @@ RegisterGameWindowClass(HINSTANCE instance)
     return cls;
 }
 
-static void
-AllocateGameMemory(gamestate_t *GameState, uint64 Size)
+gamememory_t
+AllocateMemory(uint64 Size)
 {
+    /*
     SYSTEM_INFO SystemInfo;
     GetSystemInfo(&SystemInfo);
-    //LOGF("Allocating %d. Page size of computer is %d.", Size, SystemInfo.dwPageSize);
-
-    GameState->Memory.Size = Size;
-    GameState->Memory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    LOGF("Allocating %d. Page size of computer is %d.", Size, SystemInfo.dwPageSize);
+    */
+    gamememory_t Memory = {0};
+    Memory.Size = Size;
+    Memory.Data = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    return Memory;
 }
 
 static void
@@ -101,10 +104,12 @@ gameapi_t LoadGame()
     api.Handle = LoadLibraryA("game.dll");
 #endif
     assert(api.Handle != 0);
-   
-    api.Log = NoLog;
+
+    api.AllocateMemory = AllocateMemory;
+    api.Log = NoLog;    // TODO: some log
     api.MapFile = MapFile;
 
+    api.StartUp = (startup_f) GetProcAddress((HMODULE)api.Handle, "StartUp");
     api.RunFrame = (runframe_f) GetProcAddress((HMODULE)api.Handle, "RunFrame");
     assert(api.RunFrame != 0);
 
@@ -198,9 +203,9 @@ WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int cmdshow)
     GameState.DrawBuffer.Height = 480;
     InitScreenBuffer(&GameState, hwnd);
 
-    const uint MemorySize = MEGABYTES(32);
-
-    AllocateGameMemory(&GameState, MemorySize);
+    if (GameApi.StartUp) {
+        GameApi.StartUp(&GameApi, &GameState);
+    }
 
     float Scale = 1.0f;
     
