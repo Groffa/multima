@@ -179,6 +179,45 @@ FindAndPack(FILE *ArtFile, FILE *ArtIncludeFile, char *Directory, char *Pattern)
     return EntryCount;
 }
 
+static int
+AddDebugFont(FILE *ArtFile, FILE *ArtIncludeFile)
+{
+    // 8x8 mono
+    u8 FontData[] = {
+#include "game_debugfont.h"
+    };
+    const uint FontDataCount = (sizeof(FontData) / sizeof(FontData[0]));
+    for (uint i=0; i < FontDataCount;) {
+        u8 CharImage[8*8] = {};
+        u8 *CurrentPixel = CharImage;
+        for (uint ImageRow=0; ImageRow < 8; ++ImageRow) {
+            u8 CharData = FontData[i++];
+            for (u8 BitCheck=128; BitCheck > 0; BitCheck >>= 1, ++CurrentPixel) {
+                if (CharData & BitCheck) {
+                    *CurrentPixel = 0xFF;
+                }
+            }
+        }
+        artfile_entry_t Entry = {};
+        Entry.Type = ArtFile_bitmap;
+        strcpy(Entry.Name, "debugfont_");
+        if (i/8 > 26) {
+            Entry.Name[10] = (char)('0' + i/8 - 27);
+        } else {
+            Entry.Name[10] = (char)('a' + i/8 - 1);
+        }
+        Entry.Name[11] = 0;
+        Entry.Size = 8*8;
+        Entry.Dim.Width = 8;
+        Entry.Dim.Height = 8;
+        
+        uint EntryOffset = ftell(ArtFile);
+        WriteEntry(ArtFile, &Entry, CharImage);
+        fprintf(ArtIncludeFile, "GameItem_%s = 0x%x,\n", Entry.Name, EntryOffset);
+    }
+    return FontDataCount;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -211,6 +250,7 @@ main(int argc, char **argv)
     fputs("enum game_item_e {\n", ArtIncludeFile);
 
     // Find and pack our groups
+#if 0
     int EntryCount = FindAndPack(ArtFile, ArtIncludeFile, argv[1], "*.bmp");
     DWORD LastError = GetLastError();
     if (EntryCount < 0 && LastError != 0) {
@@ -218,7 +258,23 @@ main(int argc, char **argv)
         Result = -1;
     }
     Header.EntryCount += EntryCount;
-    
+#endif
+    int EntryCounts[] = {
+        FindAndPack(ArtFile, ArtIncludeFile, argv[1], "*.bmp"),
+        AddDebugFont(ArtFile, ArtIncludeFile)
+    };
+    uint MaxEntryCounts = (sizeof(EntryCounts) / sizeof(EntryCounts[0]));
+    for (uint EntryIndex=0; EntryIndex < MaxEntryCounts; ++EntryIndex) {
+        int EntryCount = EntryCounts[EntryIndex];
+        DWORD LastError = GetLastError();
+        if (EntryCount < 0 && LastError != 0) {
+            printf("Error packing (err %i)\n", GetLastError());
+            Result = -1;
+            break;
+        }
+        Header.EntryCount += EntryCount;
+    }
+
     // Rewind tape and write header
     fseek(ArtFile, 0, SEEK_SET);
     fwrite(&Header, sizeof(artfile_header_t), 1, ArtFile);
