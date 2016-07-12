@@ -5,9 +5,10 @@
 #include <time.h>
 #include <memory.h>
 #include "game.h"
+#include "game_arts.h"
 #include "game_render.h"
 #include "game_memory.h"
-#include "game_arts.h"
+
 // For testing
 #include "game_items.h"
 
@@ -75,7 +76,20 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
     PerformRender(&RenderList, GameState);
     */
 
-#define DBGPRINT(c,x) DrawBitmap(&RenderList, GameItem_debugfont_##c, x, 0, Color(x,0,0));
+    if (GameState->Input.Right) {
+        X += 0.01;
+    } else if (GameState->Input.Left) {
+        X -= 0.01;
+    }
+    if (GameState->Input.Up) {
+        Y -= 0.01;
+    } else if (GameState->Input.Down) {
+        Y += 0.01;
+    }
+
+    const float CharWidth = X * (8 / (float)GameState->DrawBuffer.Width);
+    float cX = 0;
+#define DBGPRINT(c,x) DrawBitmap(&RenderList, GameItem_debugfont_##c, cX, 0, White(), X, Y); cX += CharWidth; 
     renderlist_t RenderList = AllocateRenderList(&FrameMemory, MEGABYTES(1));
     Clear(&RenderList);
     DBGPRINT(a,0);
@@ -86,3 +100,6 @@ RunFrame(gameapi_t *Api, gamestate_t *GameState)
     DBGPRINT(f,0.3);
     PerformRender(&RenderList, GameState);
 }
+
+#include "game_render.cpp"
+#include "game_memory.cpp"
